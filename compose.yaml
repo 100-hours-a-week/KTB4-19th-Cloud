@@ -1,0 +1,155 @@
+# V1 운영 Service 구성.
+# Image SHA와 Secret 값은 CD가 실행 시점에 환경변수로 전달한다.
+services:
+  nginx:
+    # 외부 요청 수신·S3 Frontend·Backend 전달·HTTPS 처리.
+    image: nginx:1.30.4-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # EC2 호스트 Certbot이 발급한 인증서를 읽기 전용으로 연결한다.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    # Nginx는 공개 API를 담당하는 Backend만 Upstream으로 사용한다.
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - proxy-tier
+
+  mysql:
+    # Backend에서 정한 MySQL 8.4.11 사용. 개발·배포 환경의 버전을 맞춘다.
+    image: mysql:8.4.11
+    restart: unless-stopped
+    # Container 내부 Port 표시. EC2 외부로 공개하지 않는다.
+    expose:
+      - "3306"
+    environment:
+      MYSQL_DATABASE: zipsai
+      MYSQL_USER: zipsai_app
+      # 비밀번호는 배포 시 Parameter Store에서 조회하여 전달한다.
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD를 지정해야 합니다}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD를 지정해야 합니다}
+    # MySQL이 실제로 연결을 받을 수 있는 상태인지 확인한다.
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --password=\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      # 최초 DB 초기화를 고려해 약 90초까지 준비를 기다린다.
+      retries: 6
+      start_period: 30s
+    networks:
+      - service-tier
+    # EC2의 /data에 EBS를 Mount한 뒤 /data/mysql 경로를 준비한다.
+    volumes:
+      - type: bind
+        source: /data/mysql
+        target: /var/lib/mysql
+        bind:
+          create_host_path: false
+
+  qdrant:
+    # AI Client가 사용하는 Qdrant REST API.
+    image: qdrant/qdrant:v1.19.1
+    restart: unless-stopped
+    expose:
+      - "6333"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      # Qdrant는 약 60초 안에 준비되지 않으면 기동 문제로 판단한다.
+      retries: 10
+      start_period: 10s
+    networks:
+      - service-tier
+    volumes:
+      - type: bind
+        source: /data/qdrant
+        target: /qdrant/storage
+        bind:
+          create_host_path: false
+
+  backend:
+    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-backend:${BACKEND_IMAGE_TAG:?배포할 Backend SHA를 지정해야 합니다}
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/zipsai?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+      DB_USERNAME: zipsai_app
+      # CD가 Parameter Store의 실제 값을 주입한다.
+      DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD를 지정해야 합니다}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET을 지정해야 합니다}
+      AUTH_SECURE_COOKIE: ${AUTH_SECURE_COOKIE:-true}
+      CORS_ALLOWED_ORIGINS: https://zipsai.co.kr
+      BACKEND_PORT: "8080"
+      # AI FastAPI는 외부 Port 없이 Docker 내부 Service 이름으로 호출한다.
+      AI_API_URL: http://ai-api:8000
+      TZ: Asia/Seoul
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ai-api:
+        condition: service_healthy
+    networks:
+      - proxy-tier
+      - service-tier
+
+  ai-api:
+    # 문서 처리·챗봇 흐름을 조합하고 Embedding·외부 LLM API를 호출한다.
+    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-ai-api:${AI_API_IMAGE_TAG:?배포할 AI API SHA를 지정해야 합니다}
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      # Embedding은 외부에 공개하지 않고 Docker 내부 Service 이름으로만 호출한다.
+      EMBEDDING_API_URL: http://embedding:8000
+      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL을 지정해야 합니다}
+      # 외부 LLM API Key는 Parameter Store에서 조회해 배포 시 주입한다.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY를 지정해야 합니다}
+      TZ: Asia/Seoul
+    depends_on:
+      embedding:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      # LLM Client와 Embedding 연결 설정을 고려해 약 80초까지 준비를 기다린다.
+      retries: 6
+      start_period: 20s
+    networks:
+      - service-tier
+
+  embedding:
+    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-embedding:${EMBEDDING_IMAGE_TAG:?배포할 Embedding SHA를 지정해야 합니다}
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: documents
+      TZ: Asia/Seoul
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      # BGE-M3 모델 로딩을 고려해 약 120초까지 준비를 기다린다.
+      retries: 6
+      start_period: 60s
+    networks:
+      - service-tier
+
+# Nginx는 Backend에만 연결하고, AI·DB·Qdrant에는 직접 연결하지 않는다.
+networks:
+  proxy-tier:
+    driver: bridge
+  service-tier:
+    driver: bridge

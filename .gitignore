@@ -1,0 +1,11 @@
+.DS_Store
+.env
+
+# Terraform을 나중에 추가할 때 State·실제 설정값은 Git에서 제외
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+tfplan
+
+.gitignore.save
