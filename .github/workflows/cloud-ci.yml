@@ -1,0 +1,49 @@
+name: Cloud CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Compose와 Nginx 설정 검증
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        env:
+          # Compose의 필수 환경변수 형식을 확인하기 위한 CI 전용 비밀값이다.
+          # 실제 운영 Secret·Image를 사용하거나 AWS에 접속하지 않는다.
+          BACKEND_IMAGE_TAG: validation
+          AI_API_IMAGE_TAG: validation
+          EMBEDDING_IMAGE_TAG: validation
+          MYSQL_PASSWORD: validation-only
+          MYSQL_ROOT_PASSWORD: validation-only
+          JWT_SECRET: validation-only
+          LLM_BASE_URL: https://openrouter.ai/api/v1
+          OPENROUTER_API_KEY: validation-only
+        run: docker compose config -q
+
+      - name: Create temporary TLS certificate for Nginx validation
+        run: |
+          CERT_DIR="$RUNNER_TEMP/letsencrypt/live/zipsai.co.kr"
+          mkdir -p "$CERT_DIR"
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$CERT_DIR/privkey.pem" \
+            -out "$CERT_DIR/fullchain.pem" \
+            -subj "/CN=zipsai.co.kr"
+
+      - name: Validate Nginx configuration
+        run: |
+          docker run --rm \
+            --add-host backend:127.0.0.1 \
+            -v "$GITHUB_WORKSPACE/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$RUNNER_TEMP/letsencrypt:/etc/letsencrypt:ro" \
+            nginx:1.30.4-alpine nginx -t
