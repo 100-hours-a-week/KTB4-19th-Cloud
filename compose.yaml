@@ -26,6 +26,10 @@ services:
     # Container 내부 Port 표시. EC2 외부로 공개하지 않는다.
     expose:
       - "3306"
+    # SSM 포트 포워딩용으로 EC2 로컬에서만 접근을 허용한다.
+    # 보안 그룹이나 인터넷에는 3306 Port를 공개하지 않는다.
+    ports:
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_DATABASE: zipsai
       MYSQL_USER: zipsai_app
