@@ -79,7 +79,7 @@ jobs:
                 ("sudo chown root:root " + $app_dir + "/.env && sudo chmod 600 " + $app_dir + "/.env"),
                 ("aws ecr get-login-password --region " + $aws_region + " | sudo docker login --username AWS --password-stdin " + $ecr_registry),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml config -q"),
-                ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml up -d --remove-orphans"),
+                ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml up -d --remove-orphans --quiet-pull"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml restart nginx")
               ]
             }' > ssm-parameters.json
