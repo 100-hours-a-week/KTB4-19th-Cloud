@@ -17,6 +17,7 @@ permissions:
 # V1에서 고정된 AWS 배포 대상이다. Secret이 아닌 식별 정보만 둔다.
 env:
   AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com
   INSTANCE_ID: i-06c0ca0d997f03792
   APP_DIR: /opt/zipsai
 
@@ -56,6 +57,7 @@ jobs:
           jq -n \
             --arg app_dir "$APP_DIR" \
             --arg aws_region "$AWS_REGION" \
+            --arg ecr_registry "$ECR_REGISTRY" \
             --arg compose "$COMPOSE_B64" \
             --arg nginx "$NGINX_B64" \
             --arg initial_backend_tag "$INITIAL_BACKEND_IMAGE_TAG" \
@@ -75,6 +77,7 @@ jobs:
                 ("OPENROUTER_API_KEY=$(aws ssm get-parameter --name /zipsai/prod/ai/openrouter-api-key --with-decryption --query Parameter.Value --output text --region " + $aws_region + ")"),
                 ("{ printf '\''BACKEND_IMAGE_TAG=%s\\n'\'' \"$BACKEND_IMAGE_TAG\"; printf '\''AI_API_IMAGE_TAG=%s\\n'\'' \"$AI_API_IMAGE_TAG\"; printf '\''EMBEDDING_IMAGE_TAG=%s\\n'\'' \"$EMBEDDING_IMAGE_TAG\"; printf '\''MYSQL_PASSWORD=%s\\n'\'' \"$MYSQL_PASSWORD\"; printf '\''MYSQL_ROOT_PASSWORD=%s\\n'\'' \"$MYSQL_ROOT_PASSWORD\"; printf '\''JWT_SECRET=%s\\n'\'' \"$JWT_SECRET\"; printf '\''LLM_BASE_URL=https://openrouter.ai/api/v1\\n'\''; printf '\''OPENROUTER_API_KEY=%s\\n'\'' \"$OPENROUTER_API_KEY\"; } | sudo tee " + $app_dir + "/.env > /dev/null"),
                 ("sudo chown root:root " + $app_dir + "/.env && sudo chmod 600 " + $app_dir + "/.env"),
+                ("aws ecr get-login-password --region " + $aws_region + " | sudo docker login --username AWS --password-stdin " + $ecr_registry),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml config -q"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml up -d --remove-orphans"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml restart nginx")
