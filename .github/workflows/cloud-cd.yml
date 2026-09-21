@@ -32,6 +32,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # IAM 신뢰 정책과 비교할 OIDC 식별 정보만 출력한다. 토큰 자체는 출력하지 않는다.
+      - name: Show OIDC claims
+        run: |
+          OIDC_TOKEN="$(
+            curl -sS \
+              -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
+              | jq -r '.value'
+          )"
+
+          OIDC_TOKEN="$OIDC_TOKEN" node -e '
+            const claim = JSON.parse(
+              Buffer.from(process.env.OIDC_TOKEN.split(".")[1], "base64url").toString()
+            );
+            console.log({
+              sub: claim.sub,
+              aud: claim.aud,
+              repository: claim.repository,
+              ref: claim.ref
+            });
+          '
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
