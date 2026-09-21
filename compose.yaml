@@ -54,6 +54,8 @@ services:
     # AI Client가 사용하는 Qdrant REST API.
     image: qdrant/qdrant:v1.19.1
     restart: unless-stopped
+    # AI 배포 전에는 기본 Compose 실행 대상에서 제외한다.
+    profiles: ["ai"]
     expose:
       - "6333"
     healthcheck:
@@ -89,11 +91,12 @@ services:
       BACKEND_PORT: "8080"
       # AI FastAPI는 외부 Port 없이 Docker 내부 Service 이름으로 호출한다.
       AI_API_URL: http://ai-api:8000
+      # 업로드 파일은 EC2 IAM Role 권한으로 운영 S3 Bucket에 저장한다.
+      AWS_REGION: ap-northeast-2
+      S3_UPLOAD_BUCKET: zipsai-prod-uploads
       TZ: Asia/Seoul
     depends_on:
       mysql:
-        condition: service_healthy
-      ai-api:
         condition: service_healthy
     networks:
       - proxy-tier
@@ -101,8 +104,10 @@ services:
 
   ai-api:
     # 문서 처리·챗봇 흐름을 조합하고 Embedding·외부 LLM API를 호출한다.
-    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-ai-api:${AI_API_IMAGE_TAG:?배포할 AI API SHA를 지정해야 합니다}
+    # AI 배포 전에도 Compose 설정 검증이 가능하도록 기본 Tag를 둔다.
+    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-ai-api:${AI_API_IMAGE_TAG:-pending}
     restart: unless-stopped
+    profiles: ["ai"]
     expose:
       - "8000"
     environment:
@@ -126,8 +131,9 @@ services:
       - service-tier
 
   embedding:
-    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-embedding:${EMBEDDING_IMAGE_TAG:?배포할 Embedding SHA를 지정해야 합니다}
+    image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-embedding:${EMBEDDING_IMAGE_TAG:-pending}
     restart: unless-stopped
+    profiles: ["ai"]
     expose:
       - "8000"
     environment:

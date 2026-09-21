@@ -3,6 +3,11 @@ name: Cloud CD
 # 자동 배포하지 않는다. 운영자가 GitHub Actions 화면에서 main Commit을 선택해 실행한다.
 on:
   workflow_dispatch:
+    inputs:
+      backend_image_tag:
+        description: 최초 배포 시 사용할 Backend main Commit SHA. 기존 배포 환경이면 비워 둔다.
+        required: false
+        type: string
 
 # id-token은 GitHub가 AWS OIDC Role을 임시로 Assume하기 위해 필요하다.
 permissions:
@@ -40,29 +45,30 @@ jobs:
         env:
           COMPOSE_FILE: compose.yaml
           NGINX_FILE: nginx/default.conf
+          INITIAL_BACKEND_IMAGE_TAG: ${{ inputs.backend_image_tag }}
         run: |
           # SSM Run Command는 파일 자체를 전송하지 않으므로, 두 설정 파일을 Base64 문자열로 전달한다.
           COMPOSE_B64="$(base64 < "$COMPOSE_FILE" | tr -d '\n')"
           NGINX_B64="$(base64 < "$NGINX_FILE" | tr -d '\n')"
 
           # EC2에서 순서대로 실행할 명령 목록을 SSM 형식(JSON)으로 만든다.
-          # 기존 .env의 Image SHA는 유지하고, Secret은 Parameter Store 원본으로 다시 만든다.
+          # 기존 Backend Image SHA는 유지한다. 최초 배포에서는 Workflow 입력값으로 .env를 생성한다.
           jq -n \
             --arg app_dir "$APP_DIR" \
             --arg aws_region "$AWS_REGION" \
             --arg compose "$COMPOSE_B64" \
             --arg nginx "$NGINX_B64" \
+            --arg initial_backend_tag "$INITIAL_BACKEND_IMAGE_TAG" \
             '{
               commands: [
                 "set -eu",
                 ("sudo install -d -m 0755 " + $app_dir + "/nginx"),
                 ("printf '\''%s'\'' '\''" + $compose + "'\'' | base64 -d | sudo tee " + $app_dir + "/compose.yaml > /dev/null"),
                 ("printf '\''%s'\'' '\''" + $nginx + "'\'' | base64 -d | sudo tee " + $app_dir + "/nginx/default.conf > /dev/null"),
-                ("sudo test -f " + $app_dir + "/.env"),
-                ("BACKEND_IMAGE_TAG=$(sudo sed -n '\''s/^BACKEND_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1)"),
-                ("AI_API_IMAGE_TAG=$(sudo sed -n '\''s/^AI_API_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1)"),
-                ("EMBEDDING_IMAGE_TAG=$(sudo sed -n '\''s/^EMBEDDING_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1)"),
-                "test -n \"$BACKEND_IMAGE_TAG\" && test -n \"$AI_API_IMAGE_TAG\" && test -n \"$EMBEDDING_IMAGE_TAG\"",
+                ("if sudo test -f " + $app_dir + "/.env; then BACKEND_IMAGE_TAG=$(sudo sed -n '\''s/^BACKEND_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1); else BACKEND_IMAGE_TAG=" + ($initial_backend_tag | @sh) + "; fi"),
+                ("AI_API_IMAGE_TAG=$(sudo sed -n '\''s/^AI_API_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true)"),
+                ("EMBEDDING_IMAGE_TAG=$(sudo sed -n '\''s/^EMBEDDING_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true)"),
+                "test -n \"$BACKEND_IMAGE_TAG\"",
                 ("MYSQL_PASSWORD=$(aws ssm get-parameter --name /zipsai/prod/mysql/password --with-decryption --query Parameter.Value --output text --region " + $aws_region + ")"),
                 ("MYSQL_ROOT_PASSWORD=$(aws ssm get-parameter --name /zipsai/prod/mysql/root-password --with-decryption --query Parameter.Value --output text --region " + $aws_region + ")"),
                 ("JWT_SECRET=$(aws ssm get-parameter --name /zipsai/prod/jwt/secret --with-decryption --query Parameter.Value --output text --region " + $aws_region + ")"),
