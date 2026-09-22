@@ -3,15 +3,6 @@ name: Cloud CD
 # 자동 배포하지 않는다. 운영자가 GitHub Actions 화면에서 main Commit을 선택해 실행한다.
 on:
   workflow_dispatch:
-    inputs:
-      ai_api_image_tag:
-        description: 배포할 AI API Image SHA 앞 7자리. 비우면 기존 태그를 유지한다.
-        required: false
-        type: string
-      embedding_image_tag:
-        description: 배포할 Embedding Image SHA 앞 7자리. 비우면 기존 태그를 유지한다.
-        required: false
-        type: string
 
 # id-token은 GitHub가 AWS OIDC Role을 임시로 Assume하기 위해 필요하다.
 permissions:
@@ -50,30 +41,19 @@ jobs:
         env:
           COMPOSE_FILE: compose.yaml
           NGINX_FILE: nginx/default.conf
-          INPUT_AI_API_IMAGE_TAG: ${{ inputs.ai_api_image_tag }}
-          INPUT_EMBEDDING_IMAGE_TAG: ${{ inputs.embedding_image_tag }}
         run: |
           # SSM Run Command는 파일 자체를 전송하지 않으므로, 두 설정 파일을 Base64 문자열로 전달한다.
           COMPOSE_B64="$(base64 < "$COMPOSE_FILE" | tr -d '\n')"
           NGINX_B64="$(base64 < "$NGINX_FILE" | tr -d '\n')"
 
-          # AI CI가 ECR에 저장하는 Tag 형식(Commit SHA 앞 7자리)만 받는다.
-          validate_image_tag() {
-            test -z "$1" || [[ "$1" =~ ^[0-9a-f]{7}$ ]]
-          }
-          validate_image_tag "$INPUT_AI_API_IMAGE_TAG"
-          validate_image_tag "$INPUT_EMBEDDING_IMAGE_TAG"
-
           # EC2에서 순서대로 실행할 명령 목록을 SSM 형식(JSON)으로 만든다.
-          # 기존 Backend Image SHA는 유지한다. 최초 배포에서는 Workflow 입력값으로 .env를 생성한다.
+          # 각 서비스 레포 CD가 기록한 Image Tag는 유지하고, Compose·Nginx만 갱신한다.
           jq -n \
             --arg app_dir "$APP_DIR" \
             --arg aws_region "$AWS_REGION" \
             --arg ecr_registry "$ECR_REGISTRY" \
             --arg compose "$COMPOSE_B64" \
             --arg nginx "$NGINX_B64" \
-            --arg input_ai_api_tag "$INPUT_AI_API_IMAGE_TAG" \
-            --arg input_embedding_tag "$INPUT_EMBEDDING_IMAGE_TAG" \
             '{
               commands: [
                 "set -eu",
@@ -82,8 +62,8 @@ jobs:
                 ("printf '\''%s'\'' '\''" + $nginx + "'\'' | base64 -d | sudo tee " + $app_dir + "/nginx/default.conf > /dev/null"),
                 ("sudo test -f " + $app_dir + "/.env"),
                 ("BACKEND_IMAGE_TAG=$(sudo sed -n '\''s/^BACKEND_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1)"),
-                ("if test -n " + ($input_ai_api_tag | @sh) + "; then AI_API_IMAGE_TAG=" + ($input_ai_api_tag | @sh) + "; else AI_API_IMAGE_TAG=$(sudo sed -n '\''s/^AI_API_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true); fi"),
-                ("if test -n " + ($input_embedding_tag | @sh) + "; then EMBEDDING_IMAGE_TAG=" + ($input_embedding_tag | @sh) + "; else EMBEDDING_IMAGE_TAG=$(sudo sed -n '\''s/^EMBEDDING_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true); fi"),
+                ("AI_API_IMAGE_TAG=$(sudo sed -n '\''s/^AI_API_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true)"),
+                ("EMBEDDING_IMAGE_TAG=$(sudo sed -n '\''s/^EMBEDDING_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true)"),
                 "test -n \"$BACKEND_IMAGE_TAG\"",
                 "if test -n \"$AI_API_IMAGE_TAG\" || test -n \"$EMBEDDING_IMAGE_TAG\"; then test -n \"$AI_API_IMAGE_TAG\" && test -n \"$EMBEDDING_IMAGE_TAG\"; COMPOSE_PROFILE=ai; else COMPOSE_PROFILE=; fi",
                 ("MYSQL_PASSWORD=$(aws ssm get-parameter --name /zipsai/prod/mysql/password --with-decryption --query Parameter.Value --output text --region " + $aws_region + ")"),
