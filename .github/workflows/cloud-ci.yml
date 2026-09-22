@@ -29,6 +29,8 @@ jobs:
           JWT_SECRET: validation-only
           LLM_BASE_URL: https://openrouter.ai/api/v1
           OPENROUTER_API_KEY: validation-only
+          # AI API의 Compose 필수 변수 형식 검증용 값이다.
+          LLM_MODEL: validation-model
         run: docker compose config -q
 
       - name: Create temporary TLS certificate for Nginx validation
