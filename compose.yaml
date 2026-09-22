@@ -58,12 +58,11 @@ services:
     # AI Client가 사용하는 Qdrant REST API.
     image: qdrant/qdrant:v1.19.1
     restart: unless-stopped
-    # AI 배포 전에는 기본 Compose 실행 대상에서 제외한다.
-    profiles: ["ai"]
     expose:
       - "6333"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      # qdrant 이미지에는 wget이 없으므로 Bash의 TCP 연결로 HTTP Port 준비 여부를 확인한다.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333'"]
       interval: 5s
       timeout: 3s
       # Qdrant는 약 60초 안에 준비되지 않으면 기동 문제로 판단한다.
@@ -111,7 +110,6 @@ services:
     # AI 배포 전에도 Compose 설정 검증이 가능하도록 기본 Tag를 둔다.
     image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-ai-api:${AI_API_IMAGE_TAG:-pending}
     restart: unless-stopped
-    profiles: ["ai"]
     expose:
       - "8000"
     environment:
@@ -147,7 +145,6 @@ services:
   embedding:
     image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-embedding:${EMBEDDING_IMAGE_TAG:-pending}
     restart: unless-stopped
-    profiles: ["ai"]
     expose:
       - "8000"
     environment:
