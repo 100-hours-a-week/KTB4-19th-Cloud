@@ -129,6 +129,8 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL을 지정해야 합니다}
       # 외부 LLM API Key는 Parameter Store에서 조회해 배포 시 주입한다.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY를 지정해야 합니다}
+      # Parameter Store에서 조회한 OpenRouter 모델 식별자를 AI API에 전달한다.
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL을 지정해야 합니다}
       TZ: Asia/Seoul
     depends_on:
       embedding:
