@@ -23,9 +23,21 @@ services:
     # Backend에서 정한 MySQL 8.4.11 사용. 개발·배포 환경의 버전을 맞춘다.
     image: mysql:8.4.11
     restart: unless-stopped
+    # 서비스별 CloudWatch Logs 그룹으로 표준 출력·오류 출력을 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/mysql
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     # Container 내부 Port 표시. EC2 외부로 공개하지 않는다.
     expose:
       - "3306"
+    # 외부 공개 없이 SSM Port Forwarding을 통한 운영 조회만 허용한다.
+    ports:
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_DATABASE: zipsai
       MYSQL_USER: zipsai_app
@@ -54,6 +66,15 @@ services:
     # AI Client가 사용하는 Qdrant REST API.
     image: qdrant/qdrant:v1.19.1
     restart: unless-stopped
+    # 서비스별 CloudWatch Logs 그룹으로 표준 출력·오류 출력을 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/qdrant
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     expose:
       - "6333"
     # 외부 공개 없이 SSM Port Forwarding을 통한 운영 조회만 허용한다.
@@ -83,6 +104,15 @@ services:
   backend:
     image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-backend:${BACKEND_IMAGE_TAG:?배포할 Backend SHA를 지정해야 합니다}
     restart: unless-stopped
+    # 서비스별 CloudWatch Logs 그룹으로 표준 출력·오류 출력을 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/backend
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     expose:
       - "8080"
     environment:
@@ -115,6 +145,15 @@ services:
     # AI 배포 전에도 Compose 설정 검증이 가능하도록 기본 Tag를 둔다.
     image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-ai-api:${AI_API_IMAGE_TAG:-pending}
     restart: unless-stopped
+    # 서비스별 CloudWatch Logs 그룹으로 표준 출력·오류 출력을 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/ai-api
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     expose:
       - "8000"
     environment:
@@ -148,6 +187,15 @@ services:
   embedding:
     image: 929368845727.dkr.ecr.ap-northeast-2.amazonaws.com/zipsai-embedding:${EMBEDDING_IMAGE_TAG:-pending}
     restart: unless-stopped
+    # 서비스별 CloudWatch Logs 그룹으로 표준 출력·오류 출력을 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/embedding
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     expose:
       - "8000"
     environment:
