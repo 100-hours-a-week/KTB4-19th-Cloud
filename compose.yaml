@@ -124,6 +124,8 @@ services:
       QDRANT_COLLECTION: documents
       # Embedding은 외부에 공개하지 않고 Docker 내부 Service 이름으로만 호출한다.
       EMBEDDING_API_URL: http://embedding:8000
+      # AI API가 문서를 조회할 운영 S3 Bucket이다. AWS 자격 증명은 EC2 Instance Role을 사용한다.
+      S3_BUCKET: zipsai-prod-uploads
       LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL을 지정해야 합니다}
       # 외부 LLM API Key는 Parameter Store에서 조회해 배포 시 주입한다.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY를 지정해야 합니다}
