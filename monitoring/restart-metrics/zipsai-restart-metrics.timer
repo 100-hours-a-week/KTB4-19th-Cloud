@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Zipsai Docker restart metric collector every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+Persistent=true
+Unit=zipsai-restart-metrics.service
+
+[Install]
+WantedBy=timers.target

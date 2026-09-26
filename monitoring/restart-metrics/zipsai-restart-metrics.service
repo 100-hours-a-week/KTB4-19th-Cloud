@@ -1,0 +1,9 @@
+[Unit]
+Description=Publish Zipsai Docker container restart metrics to CloudWatch
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/bin/zipsai-publish-restart-metrics.sh

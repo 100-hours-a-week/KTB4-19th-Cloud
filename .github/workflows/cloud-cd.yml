@@ -64,11 +64,26 @@ jobs:
         env:
           COMPOSE_FILE: compose.yaml
           NGINX_FILE: nginx/default.conf
+          RESTART_METRICS_SCRIPT_FILE: monitoring/restart-metrics/zipsai-publish-restart-metrics.sh
+          RESTART_METRICS_SERVICE_FILE: monitoring/restart-metrics/zipsai-restart-metrics.service
+          RESTART_METRICS_TIMER_FILE: monitoring/restart-metrics/zipsai-restart-metrics.timer
           DEPLOY_SHA: ${{ steps.version.outputs.deploy_sha }}
         run: |
-          # SSM Run Command는 파일 자체를 전송하지 않으므로, 두 설정 파일을 Base64 문자열로 전달한다.
+          # SSM Run Command는 파일 자체를 전송하지 않으므로, 배포 대상 파일을 Base64 문자열로 전달한다.
           COMPOSE_B64="$(base64 < "$COMPOSE_FILE" | tr -d '\n')"
           NGINX_B64="$(base64 < "$NGINX_FILE" | tr -d '\n')"
+
+          # 이전 Cloud Commit을 선택해 설정만 롤백할 수 있도록 M7 파일은 해당 Commit에 있을 때만 설치한다.
+          RESTART_METRICS_PRESENT=false
+          RESTART_METRICS_SCRIPT_B64=""
+          RESTART_METRICS_SERVICE_B64=""
+          RESTART_METRICS_TIMER_B64=""
+          if [[ -f "$RESTART_METRICS_SCRIPT_FILE" && -f "$RESTART_METRICS_SERVICE_FILE" && -f "$RESTART_METRICS_TIMER_FILE" ]]; then
+            RESTART_METRICS_PRESENT=true
+            RESTART_METRICS_SCRIPT_B64="$(base64 < "$RESTART_METRICS_SCRIPT_FILE" | tr -d '\n')"
+            RESTART_METRICS_SERVICE_B64="$(base64 < "$RESTART_METRICS_SERVICE_FILE" | tr -d '\n')"
+            RESTART_METRICS_TIMER_B64="$(base64 < "$RESTART_METRICS_TIMER_FILE" | tr -d '\n')"
+          fi
 
           # EC2에서 순서대로 실행할 명령 목록을 SSM 형식(JSON)으로 만든다.
           # 각 서비스 레포 CD가 기록한 Image Tag는 유지하고, Compose·Nginx만 갱신한다.
@@ -78,6 +93,10 @@ jobs:
             --arg ecr_registry "$ECR_REGISTRY" \
             --arg compose "$COMPOSE_B64" \
             --arg nginx "$NGINX_B64" \
+            --arg restart_metrics_present "$RESTART_METRICS_PRESENT" \
+            --arg restart_metrics_script "$RESTART_METRICS_SCRIPT_B64" \
+            --arg restart_metrics_service "$RESTART_METRICS_SERVICE_B64" \
+            --arg restart_metrics_timer "$RESTART_METRICS_TIMER_B64" \
             '{
               commands: [
                 "set -eu",
@@ -103,7 +122,18 @@ jobs:
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml config -q"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml up -d --remove-orphans --quiet-pull"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml restart nginx")
-              ]
+              ] +
+              (if $restart_metrics_present == "true" then [
+                "sudo install -d -m 0755 /usr/local/bin /etc/systemd/system",
+                ("printf '\''%s'\'' '\''" + $restart_metrics_script + "'\'' | base64 -d | sudo tee /usr/local/bin/zipsai-publish-restart-metrics.sh > /dev/null"),
+                ("printf '\''%s'\'' '\''" + $restart_metrics_service + "'\'' | base64 -d | sudo tee /etc/systemd/system/zipsai-restart-metrics.service > /dev/null"),
+                ("printf '\''%s'\'' '\''" + $restart_metrics_timer + "'\'' | base64 -d | sudo tee /etc/systemd/system/zipsai-restart-metrics.timer > /dev/null"),
+                "sudo chown root:root /usr/local/bin/zipsai-publish-restart-metrics.sh /etc/systemd/system/zipsai-restart-metrics.service /etc/systemd/system/zipsai-restart-metrics.timer",
+                "sudo chmod 755 /usr/local/bin/zipsai-publish-restart-metrics.sh",
+                "sudo chmod 644 /etc/systemd/system/zipsai-restart-metrics.service /etc/systemd/system/zipsai-restart-metrics.timer",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl enable --now zipsai-restart-metrics.timer"
+              ] else [] end)
             }' > ssm-parameters.json
 
           COMMAND_ID="$(aws ssm send-command \
