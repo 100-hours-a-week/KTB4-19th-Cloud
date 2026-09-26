@@ -98,7 +98,8 @@ jobs:
             --arg restart_metrics_service "$RESTART_METRICS_SERVICE_B64" \
             --arg restart_metrics_timer "$RESTART_METRICS_TIMER_B64" \
             '{
-              commands: [
+              commands: (
+                [
                 "set -eu",
                 ("sudo install -d -m 0755 " + $app_dir + "/nginx"),
                 ("printf '\''%s'\'' '\''" + $compose + "'\'' | base64 -d | sudo tee " + $app_dir + "/compose.yaml > /dev/null"),
@@ -122,8 +123,8 @@ jobs:
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml config -q"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml up -d --remove-orphans --quiet-pull"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml restart nginx")
-              ] +
-              (if $restart_metrics_present == "true" then [
+                ] +
+                (if $restart_metrics_present == "true" then [
                 "sudo install -d -m 0755 /usr/local/bin /etc/systemd/system",
                 ("printf '\''%s'\'' '\''" + $restart_metrics_script + "'\'' | base64 -d | sudo tee /usr/local/bin/zipsai-publish-restart-metrics.sh > /dev/null"),
                 ("printf '\''%s'\'' '\''" + $restart_metrics_service + "'\'' | base64 -d | sudo tee /etc/systemd/system/zipsai-restart-metrics.service > /dev/null"),
@@ -133,7 +134,8 @@ jobs:
                 "sudo chmod 644 /etc/systemd/system/zipsai-restart-metrics.service /etc/systemd/system/zipsai-restart-metrics.timer",
                 "sudo systemctl daemon-reload",
                 "sudo systemctl enable --now zipsai-restart-metrics.timer"
-              ] else [] end)
+                ] else [] end)
+              )
             }' > ssm-parameters.json
 
           COMMAND_ID="$(aws ssm send-command \
