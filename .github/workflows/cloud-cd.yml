@@ -70,6 +70,7 @@ jobs:
           CONTAINER_METRICS_SCRIPT_FILE: monitoring/container-metrics/zipsai-publish-container-metrics.sh
           CONTAINER_METRICS_SERVICE_FILE: monitoring/container-metrics/zipsai-container-metrics.service
           CONTAINER_METRICS_TIMER_FILE: monitoring/container-metrics/zipsai-container-metrics.timer
+          EC2_METRICS_AGENT_CONFIG_FILE: monitoring/ec2-metrics/amazon-cloudwatch-agent.json
           DEPLOY_SHA: ${{ steps.version.outputs.deploy_sha }}
         run: |
           # SSM Run Command는 파일 자체를 전송하지 않으므로, 배포 대상 파일을 Base64 문자열로 전달한다.
@@ -99,6 +100,13 @@ jobs:
             CONTAINER_METRICS_TIMER_B64="$(base64 < "$CONTAINER_METRICS_TIMER_FILE" | tr -d '\n')"
           fi
 
+          EC2_METRICS_AGENT_CONFIG_PRESENT=false
+          EC2_METRICS_AGENT_CONFIG_B64=""
+          if [[ -f "$EC2_METRICS_AGENT_CONFIG_FILE" ]]; then
+            EC2_METRICS_AGENT_CONFIG_PRESENT=true
+            EC2_METRICS_AGENT_CONFIG_B64="$(base64 < "$EC2_METRICS_AGENT_CONFIG_FILE" | tr -d '\n')"
+          fi
+
           # EC2에서 순서대로 실행할 명령 목록을 SSM 형식(JSON)으로 만든다.
           # 각 서비스 레포 CD가 기록한 Image Tag는 유지하고, Compose·Nginx만 갱신한다.
           jq -n \
@@ -115,6 +123,8 @@ jobs:
             --arg container_metrics_script "$CONTAINER_METRICS_SCRIPT_B64" \
             --arg container_metrics_service "$CONTAINER_METRICS_SERVICE_B64" \
             --arg container_metrics_timer "$CONTAINER_METRICS_TIMER_B64" \
+            --arg ec2_metrics_agent_config_present "$EC2_METRICS_AGENT_CONFIG_PRESENT" \
+            --arg ec2_metrics_agent_config "$EC2_METRICS_AGENT_CONFIG_B64" \
             '{
               commands: (
                 [
@@ -163,6 +173,14 @@ jobs:
                 "sudo chmod 644 /etc/systemd/system/zipsai-container-metrics.service /etc/systemd/system/zipsai-container-metrics.timer",
                 "sudo systemctl daemon-reload",
                 "sudo systemctl enable --now zipsai-container-metrics.timer"
+                ] else [] end) +
+                (if $ec2_metrics_agent_config_present == "true" then [
+                "if test ! -x /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl; then curl -fsSL -o /tmp/amazon-cloudwatch-agent.deb https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb && sudo dpkg -i /tmp/amazon-cloudwatch-agent.deb && rm -f /tmp/amazon-cloudwatch-agent.deb; fi",
+                "sudo install -d -m 0755 /opt/aws/amazon-cloudwatch-agent/etc",
+                ("printf '\''%s'\'' '\''" + $ec2_metrics_agent_config + "'\'' | base64 -d | sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json > /dev/null"),
+                "sudo chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+                "sudo chmod 644 /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+                "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s"
                 ] else [] end)
               )
             }' > ssm-parameters.json
