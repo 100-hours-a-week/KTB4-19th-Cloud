@@ -5,6 +5,16 @@ services:
     # 외부 요청 수신·S3 Frontend·Backend 전달·HTTPS 처리.
     image: nginx:1.30.4-alpine
     restart: unless-stopped
+    # API access/error 로그를 CloudWatch Logs로 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/nginx
+        awslogs-create-group: "true"
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     ports:
       - "80:80"
       - "443:443"
