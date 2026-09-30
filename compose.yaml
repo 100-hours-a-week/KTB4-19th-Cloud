@@ -142,7 +142,7 @@ services:
       # 업로드 파일은 EC2 IAM Role 권한으로 운영 S3 Bucket에 저장한다.
       AWS_REGION: ap-northeast-2
       S3_UPLOAD_BUCKET: zipsai-prod-uploads
-      SENTRY_DSN: "https://o4512173285113856.ingest.us.sentry.io/4512173335838720"
+      SENTRY_DSN: "https://9d5fdd4ef7a4c2ec7ce4695d9c9cc753@o4512173285113856.ingest.us.sentry.io/4512173335838720"
       SENTRY_ENVIRONMENT: production
       SENTRY_TRACES_SAMPLE_RATE: "0.1"
       TZ: Asia/Seoul
