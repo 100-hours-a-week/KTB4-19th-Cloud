@@ -5,6 +5,16 @@ services:
     # 외부 요청 수신·S3 Frontend·Backend 전달·HTTPS 처리.
     image: nginx:1.30.4-alpine
     restart: unless-stopped
+    # API access/error 로그를 CloudWatch Logs로 전송한다.
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /zipsai/prod/nginx
+        awslogs-create-group: "true"
+        tag: "{{.Name}}"
+        mode: non-blocking
+        max-buffer-size: 4m
     ports:
       - "80:80"
       - "443:443"
@@ -125,12 +135,13 @@ services:
       AUTH_SECURE_COOKIE: ${AUTH_SECURE_COOKIE:-true}
       CORS_ALLOWED_ORIGINS: https://zipsai.co.kr
       BACKEND_PORT: "8080"
+      # 운영에서는 Stub 대신 AI API HTTP Client를 사용한다.
+      AI_CLIENT: http
       # AI FastAPI는 외부 Port 없이 Docker 내부 Service 이름으로 호출한다.
       AI_API_URL: http://ai-api:8000
       # 업로드 파일은 EC2 IAM Role 권한으로 운영 S3 Bucket에 저장한다.
       AWS_REGION: ap-northeast-2
       S3_UPLOAD_BUCKET: zipsai-prod-uploads
-      # 오류·성능 추적은 Sentry로 전송한다.
       SENTRY_DSN: "https://o4512173285113856.ingest.us.sentry.io/4512173335838720"
       SENTRY_ENVIRONMENT: production
       SENTRY_TRACES_SAMPLE_RATE: "0.1"
@@ -165,9 +176,13 @@ services:
       QDRANT_COLLECTION: documents
       # Embedding은 외부에 공개하지 않고 Docker 내부 Service 이름으로만 호출한다.
       EMBEDDING_API_URL: http://embedding:8000
+      # AI API가 문서를 조회할 운영 S3 Bucket이다. AWS 자격 증명은 EC2 Instance Role을 사용한다.
+      S3_BUCKET: zipsai-prod-uploads
       LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL을 지정해야 합니다}
       # 외부 LLM API Key는 Parameter Store에서 조회해 배포 시 주입한다.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY를 지정해야 합니다}
+      # Parameter Store에서 조회한 OpenRouter 모델 식별자를 AI API에 전달한다.
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL을 지정해야 합니다}
       TZ: Asia/Seoul
     depends_on:
       embedding:
