@@ -183,6 +183,10 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY를 지정해야 합니다}
       # Parameter Store에서 조회한 OpenRouter 모델 식별자를 AI API에 전달한다.
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL을 지정해야 합니다}
+      # Langfuse 연결 정보는 Parameter Store에서 조회해 배포 시 주입한다.
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?LANGFUSE_SECRET_KEY를 지정해야 합니다}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?LANGFUSE_PUBLIC_KEY를 지정해야 합니다}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:?LANGFUSE_BASE_URL을 지정해야 합니다}
       # Langfuse는 운영 환경으로 기록하고, OTEL 인증서는 컨테이너 내부 경로를 사용한다.
       LANGFUSE_TRACING_ENVIRONMENT: production
       OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE: /etc/ssl/cert.pem
@@ -219,6 +223,12 @@ services:
       # Embedding은 문서·벡터를 저장하므로 Qdrant Admin Key를 사용한다.
       QDRANT_API_KEY: ${QDRANT_ADMIN_API_KEY:?QDRANT_ADMIN_API_KEY를 지정해야 합니다}
       QDRANT_COLLECTION: documents
+      # Embedding 처리도 Langfuse Trace에 포함한다.
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?LANGFUSE_SECRET_KEY를 지정해야 합니다}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?LANGFUSE_PUBLIC_KEY를 지정해야 합니다}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:?LANGFUSE_BASE_URL을 지정해야 합니다}
+      LANGFUSE_TRACING_ENVIRONMENT: production
+      OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE: /etc/ssl/cert.pem
       TZ: Asia/Seoul
     depends_on:
       qdrant:
