@@ -127,6 +127,9 @@ services:
       - "8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # Backend 내부 처리량 분석을 위한 Actuator·Tomcat MBean 메트릭을 활성화한다.
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,metrics
+      SERVER_TOMCAT_MBEANREGISTRY_ENABLED: "true"
       DB_URL: jdbc:mysql://mysql:3306/zipsai?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
       DB_USERNAME: zipsai_app
       # CD가 Parameter Store의 실제 값을 주입한다.
