@@ -32,7 +32,7 @@ locals {
   }
 
   backend_secrets = {
-    DB_PASSWORD = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/prod/mysql/password"
+    DB_PASSWORD = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/prod/mysql-v2/password"
     JWT_SECRET  = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/prod/jwt/secret"
   }
 }

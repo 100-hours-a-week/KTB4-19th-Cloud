@@ -29,6 +29,11 @@ variable "monitoring_security_group_id" {
   type        = string
 }
 
+variable "secret_parameter_arns" {
+  description = "SSM Parameter ARNs that the MySQL nodes may read during initialization and operation."
+  type        = set(string)
+}
+
 variable "ami_id" {
   description = "Packer-built Ubuntu MySQL AMI ID."
   type        = string

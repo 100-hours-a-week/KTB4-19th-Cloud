@@ -36,6 +36,21 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy" "read_parameters" {
+  name = "${var.name_prefix}-mysql-parameters-read"
+  role = aws_iam_role.mysql.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "ReadMySQLInitializationParameters"
+      Effect   = "Allow"
+      Action   = ["ssm:GetParameter"]
+      Resource = sort(tolist(var.secret_parameter_arns))
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "mysql" {
   name = "${var.name_prefix}-mysql-profile"
   role = aws_iam_role.mysql.name

@@ -87,4 +87,10 @@ module "mysql" {
   }
   monitoring_security_group_id = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
   data_volume_size_gib         = var.mysql_data_volume_size_gib
+  secret_parameter_arns = [
+    "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/password",
+    "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/root-password",
+    "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/replication-password",
+    "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/exporter-password",
+  ]
 }

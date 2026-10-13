@@ -36,7 +36,7 @@ V1 Docker Compose에서는 `http://appconfig-agent:2772`를 사용한다. Agent�
 
 ## V1 실행
 
-Production AppConfig와 V2 MySQL이 준비된 후 V1 배포 환경에 `DB_V2_PASSWORD`를 주입하고 Agent를 시작한다.
+Production AppConfig와 V2 MySQL이 준비된 후 V1 배포 환경에 `/zipsai/prod/mysql-v2/password`를 `DB_V2_PASSWORD`로 주입하고 Agent를 시작한다.
 
 ```bash
 docker compose --profile migration-control up -d appconfig-agent
