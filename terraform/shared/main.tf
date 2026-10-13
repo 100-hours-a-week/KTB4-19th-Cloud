@@ -48,6 +48,41 @@ resource "aws_route53_zone" "public" {
   }
 }
 
+resource "aws_route53_record" "apex_a" {
+  zone_id = aws_route53_zone.public.zone_id
+  name    = "zipsai.co.kr"
+  type    = "A"
+  ttl     = 600
+  records = ["52.78.171.236"]
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = aws_route53_zone.public.zone_id
+  name    = "www.zipsai.co.kr"
+  type    = "CNAME"
+  ttl     = 600
+  records = ["zipsai.co.kr"]
+}
+
+resource "aws_route53_record" "mx" {
+  zone_id = aws_route53_zone.public.zone_id
+  name    = "zipsai.co.kr"
+  type    = "MX"
+  ttl     = 600
+  records = [
+    "10 mx1.improvmx.com",
+    "20 mx2.improvmx.com",
+  ]
+}
+
+resource "aws_route53_record" "spf" {
+  zone_id = aws_route53_zone.public.zone_id
+  name    = "zipsai.co.kr"
+  type    = "TXT"
+  ttl     = 600
+  records = ["v=spf1 include:spf.improvmx.com ~all"]
+}
+
 resource "aws_s3_bucket" "uploads" {
   bucket        = local.uploads_bucket_name
   force_destroy = false

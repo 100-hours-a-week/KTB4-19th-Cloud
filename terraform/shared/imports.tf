@@ -11,6 +11,11 @@ import {
 }
 
 import {
+  to = aws_route53_record.mx
+  id = "Z0887629CNID03PL4131_zipsai.co.kr_MX"
+}
+
+import {
   to = aws_s3_bucket.uploads
   id = "zipsai-prod-uploads"
 }

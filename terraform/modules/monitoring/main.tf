@@ -117,14 +117,14 @@ resource "aws_instance" "monitoring" {
     volume_type           = "gp3"
     volume_size           = 16
     delete_on_termination = true
+
+    tags = merge(var.common_tags, {
+      Name = "${var.name_prefix}-root"
+    })
   }
 
   tags = merge(var.common_tags, {
     Name = var.name_prefix
-  })
-
-  volume_tags = merge(var.common_tags, {
-    Name = "${var.name_prefix}-root"
   })
 }
 
