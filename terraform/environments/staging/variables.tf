@@ -22,6 +22,40 @@ variable "mysql_data_volume_size_gib" {
   default     = 20
 }
 
+variable "enable_rehearsal_source" {
+  description = "Temporarily connect the disposable V1-like source used for the Staging migration rehearsal."
+  type        = bool
+  default     = true
+}
+
+variable "rehearsal_source_security_group_id" {
+  description = "Security group of the temporary V1-like source used only by the Staging rehearsal."
+  type        = string
+  default     = "sg-0b5cb3cd96f3313a6"
+
+  validation {
+    condition     = can(regex("^sg-[0-9a-f]+$", var.rehearsal_source_security_group_id))
+    error_message = "rehearsal_source_security_group_id must be a valid security group ID."
+  }
+}
+
+variable "rehearsal_source_ec2_role_name" {
+  description = "IAM role of the temporary V1-like source used only by the Staging rehearsal."
+  type        = string
+  default     = "zipsai-load-test-ec2-role"
+}
+
+variable "rehearsal_source_private_ip" {
+  description = "Private IP of the temporary V1-like MySQL source."
+  type        = string
+  default     = "10.0.1.124"
+
+  validation {
+    condition     = can(cidrhost("${var.rehearsal_source_private_ip}/32", 0))
+    error_message = "rehearsal_source_private_ip must be a valid IPv4 address."
+  }
+}
+
 variable "backend_image_tag" {
   description = "Immutable Backend image tag deployed to ECS."
   type        = string

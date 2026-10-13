@@ -81,10 +81,15 @@ module "mysql" {
   replica_subnet_id         = data.terraform_remote_state.network.outputs.private_data_subnet_ids.ap_northeast_2a
   replica_availability_zone = "ap-northeast-2a"
 
-  client_security_group_ids = {
-    api_tasks    = aws_security_group.api_tasks.id
-    worker_tasks = aws_security_group.worker_tasks.id
-  }
+  client_security_group_ids = merge(
+    {
+      api_tasks    = aws_security_group.api_tasks.id
+      worker_tasks = aws_security_group.worker_tasks.id
+    },
+    var.enable_rehearsal_source ? {
+      rehearsal_source = data.aws_security_group.rehearsal_source[0].id
+    } : {}
+  )
   monitoring_security_group_id = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
   data_volume_size_gib         = var.mysql_data_volume_size_gib
   secret_parameter_arns = [
