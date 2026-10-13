@@ -1,0 +1,19 @@
+[Unit]
+Description=Prometheus MySQL Exporter
+After=mysql.service network-online.target
+Wants=mysql.service network-online.target
+ConditionPathExists=/etc/zipsai/mysql-exporter.cnf
+
+[Service]
+User=mysqld_exporter
+Group=mysqld_exporter
+ExecStart=/usr/local/bin/mysqld_exporter --config.my-cnf=/etc/zipsai/mysql-exporter.cnf --mysqld.address=127.0.0.1:3306 --web.listen-address=:9104 --exporter.query_timeout=5 --exporter.max_open_connections=2 --collect.info_schema.innodb_metrics --collect.info_schema.processlist --collect.perf_schema.eventsstatements
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

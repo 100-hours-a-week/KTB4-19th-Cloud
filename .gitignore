@@ -6,6 +6,6 @@
 *.tfstate
 *.tfstate.*
 terraform.tfvars
-tfplan
+tfplan*
 
 .gitignore.save

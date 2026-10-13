@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+exec > >(tee -a /var/log/zipsai-monitoring-bootstrap.log | logger -t zipsai-monitoring-bootstrap -s 2>/dev/console) 2>&1
+
+readonly aws_region="${aws_region}"
+readonly data_volume_id="${data_volume_id}"
+readonly grafana_password_parameter_name="${grafana_password_parameter_name}"
+readonly data_device="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_$${data_volume_id}"
+
+for _ in $(seq 1 120); do
+  if [[ -b "$${data_device}" ]]; then
+    break
+  fi
+  sleep 5
+done
+
+if [[ ! -b "$${data_device}" ]]; then
+  echo "Monitoring data volume $${data_volume_id} was not attached within 10 minutes." >&2
+  exit 1
+fi
+
+if ! blkid "$${data_device}" >/dev/null 2>&1; then
+  mkfs.ext4 -F "$${data_device}"
+fi
+
+data_uuid="$(blkid -s UUID -o value "$${data_device}")"
+install -d -o root -g root -m 0755 /data
+
+if ! grep -q "^UUID=$${data_uuid} " /etc/fstab; then
+  echo "UUID=$${data_uuid} /data ext4 defaults,nofail,x-systemd.device-timeout=10min 0 2" >> /etc/fstab
+fi
+
+if ! mountpoint -q /data; then
+  mount /data
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends ca-certificates curl docker.io docker-compose-v2 unzip
+systemctl enable --now docker.service
+
+ssm_service=""
+for candidate in \
+  amazon-ssm-agent.service \
+  snap.amazon-ssm-agent.amazon-ssm-agent.service; do
+  if systemctl list-unit-files "$${candidate}" --no-legend 2>/dev/null | grep -q "^$${candidate}"; then
+    ssm_service="$${candidate}"
+    break
+  fi
+done
+
+if [[ -z "$${ssm_service}" ]]; then
+  snap install amazon-ssm-agent --classic
+  ssm_service="snap.amazon-ssm-agent.amazon-ssm-agent.service"
+fi
+
+systemctl enable --now "$${ssm_service}"
+
+if ! command -v aws >/dev/null 2>&1; then
+  work_dir="$(mktemp -d)"
+  curl --fail --silent --show-error --location \
+    "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+    --output "$${work_dir}/awscliv2.zip"
+  unzip -q "$${work_dir}/awscliv2.zip" -d "$${work_dir}"
+  "$${work_dir}/aws/install"
+  rm -rf "$${work_dir}"
+fi
+
+install -d -o root -g root -m 0755 /opt/zipsai-monitoring/config
+install -d -o root -g root -m 0700 /opt/zipsai-monitoring/secrets
+install -d -o nobody -g nogroup -m 0750 /data/monitoring/prometheus
+install -d -o 10001 -g 10001 -m 0750 /data/monitoring/loki
+install -d -o 472 -g 472 -m 0750 /data/monitoring/grafana
+
+install_config() {
+  local content="$1"
+  local destination="$2"
+
+  printf '%s' "$${content}" | base64 --decode | gzip --decompress > "$${destination}"
+  chmod 0644 "$${destination}"
+}
+
+install_config '${compose_config_gzip_base64}' /opt/zipsai-monitoring/docker-compose.yml
+install_config '${prometheus_config_gzip_base64}' /opt/zipsai-monitoring/config/prometheus.yml
+install_config '${loki_config_gzip_base64}' /opt/zipsai-monitoring/config/loki.yml
+install_config '${grafana_datasources_gzip_base64}' /opt/zipsai-monitoring/config/grafana-datasources.yml
+
+cat >/usr/local/bin/zipsai-monitoring-refresh-secret <<'SCRIPT'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+password="$(aws ssm get-parameter \
+  --region "${aws_region}" \
+  --name "${grafana_password_parameter_name}" \
+  --with-decryption \
+  --query 'Parameter.Value' \
+  --output text)"
+
+install -o root -g root -m 0400 /dev/null /opt/zipsai-monitoring/secrets/grafana-admin-password
+printf '%s' "$${password}" > /opt/zipsai-monitoring/secrets/grafana-admin-password
+SCRIPT
+chmod 0750 /usr/local/bin/zipsai-monitoring-refresh-secret
+
+cat >/etc/systemd/system/zipsai-monitoring.service <<'UNIT'
+[Unit]
+Description=Zipsai Prometheus Loki Grafana stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/zipsai-monitoring
+ExecStartPre=/usr/local/bin/zipsai-monitoring-refresh-secret
+ExecStart=/usr/bin/docker compose -f /opt/zipsai-monitoring/docker-compose.yml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f /opt/zipsai-monitoring/docker-compose.yml down
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable zipsai-monitoring.service
+
+if /usr/local/bin/zipsai-monitoring-refresh-secret; then
+  docker compose -f /opt/zipsai-monitoring/docker-compose.yml config --quiet
+  systemctl start zipsai-monitoring.service
+else
+  echo "Grafana password parameter is not ready; start zipsai-monitoring.service after creating it." >&2
+fi
+
+apt-get clean
+rm -rf /var/lib/apt/lists/*

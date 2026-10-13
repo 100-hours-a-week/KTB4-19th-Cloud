@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+exec > >(tee -a /var/log/zipsai-mysql-bootstrap.log | logger -t zipsai-mysql-bootstrap -s 2>/dev/console) 2>&1
+
+readonly data_volume_id="${data_volume_id}"
+readonly node_role="${node_role}"
+readonly server_id="${server_id}"
+readonly data_device="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${data_volume_id}"
+
+for _ in $(seq 1 120); do
+  if [[ -b "$${data_device}" ]]; then
+    break
+  fi
+  sleep 5
+done
+
+if [[ ! -b "$${data_device}" ]]; then
+  echo "Data volume $${data_volume_id} was not attached within 10 minutes." >&2
+  exit 1
+fi
+
+if ! sudo blkid "$${data_device}" >/dev/null 2>&1; then
+  sudo mkfs.ext4 -F "$${data_device}"
+fi
+
+data_uuid="$(sudo blkid -s UUID -o value "$${data_device}")"
+sudo install -d -o root -g root -m 0755 /data
+
+if ! grep -q "^UUID=$${data_uuid} " /etc/fstab; then
+  echo "UUID=$${data_uuid} /data ext4 defaults,nofail,x-systemd.device-timeout=10min 0 2" \
+    | sudo tee -a /etc/fstab >/dev/null
+fi
+
+if ! mountpoint -q /data; then
+  sudo mount /data
+fi
+
+sudo install -d -o mysql -g mysql -m 0750 /data/mysql
+sudo install -d -o mysql -g mysql -m 0750 /var/log/mysql
+
+sudo tee /etc/mysql/mysql.conf.d/zipsai-role.cnf >/dev/null <<ROLE_CONFIG
+[mysqld]
+bind-address=0.0.0.0
+server-id=${server_id}
+report-host=${node_role}
+ROLE_CONFIG
+sudo chmod 0644 /etc/mysql/mysql.conf.d/zipsai-role.cnf
+
+if [[ ! -f /data/mysql/auto.cnf ]]; then
+  sudo /usr/sbin/mysqld \
+    --defaults-file=/etc/mysql/my.cnf \
+    --initialize-insecure \
+    --user=mysql
+fi
+
+sudo chown -R mysql:mysql /data/mysql /var/log/mysql
+sudo systemctl daemon-reload
+sudo systemctl enable --now mysql.service
+sudo mysqladmin --protocol=socket ping
+
+sudo install -d -o root -g root -m 0755 /var/lib/zipsai
+sudo touch /var/lib/zipsai/mysql-bootstrap-complete

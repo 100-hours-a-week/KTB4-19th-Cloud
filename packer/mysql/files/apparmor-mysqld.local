@@ -1,0 +1,5 @@
+/data/ r,
+/data/mysql/ rw,
+/data/mysql/** rwk,
+/var/log/mysql/ rw,
+/var/log/mysql/** rwk,
