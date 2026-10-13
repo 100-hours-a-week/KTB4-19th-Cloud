@@ -208,15 +208,15 @@ resource "aws_instance" "mysql" {
     volume_type           = "gp3"
     volume_size           = var.root_volume_size_gib
     delete_on_termination = true
+
+    tags = merge(var.common_tags, {
+      Name = "${var.name_prefix}-mysql-${each.key}-root"
+      Role = each.key
+    })
   }
 
   tags = merge(var.common_tags, {
     Name = "${var.name_prefix}-mysql-${each.key}"
-    Role = each.key
-  })
-
-  volume_tags = merge(var.common_tags, {
-    Name = "${var.name_prefix}-mysql-${each.key}-root"
     Role = each.key
   })
 }

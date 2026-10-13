@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "mysql_ami_id" {
   description = "Packer-built Ubuntu 24.04 x86_64 MySQL 8.4.11 AMI."
   type        = string
-  default     = "ami-0bf77c0461e38e97c"
+  default     = "ami-09fdf482fdfe9f40f"
 }
 
 variable "mysql_instance_type" {

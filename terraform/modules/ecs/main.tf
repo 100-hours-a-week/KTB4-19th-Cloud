@@ -17,6 +17,12 @@ locals {
     image             = var.firelens_image_uri
     essential         = true
     memoryReservation = 64
+    environment       = []
+    mountPoints       = []
+    portMappings      = []
+    systemControls    = []
+    user              = "0"
+    volumesFrom       = []
 
     firelensConfiguration = {
       type = "fluentbit"
@@ -31,6 +37,9 @@ locals {
     image             = var.appconfig_agent_image_uri
     essential         = true
     memoryReservation = 64
+    mountPoints       = []
+    systemControls    = []
+    volumesFrom       = []
 
     portMappings = [{
       name          = "appconfig"
@@ -76,9 +85,12 @@ locals {
   }
 
   api_container = {
-    name      = local.api_container_name
-    image     = var.backend_image_uri
-    essential = true
+    name           = local.api_container_name
+    image          = var.backend_image_uri
+    essential      = true
+    mountPoints    = []
+    systemControls = []
+    volumesFrom    = []
 
     portMappings = [{
       name          = "http"
@@ -132,10 +144,14 @@ locals {
   }
 
   worker_container_base = {
-    name      = local.worker_container_name
-    image     = var.backend_image_uri
-    essential = true
-    command   = var.worker_command
+    name           = local.worker_container_name
+    image          = var.backend_image_uri
+    essential      = true
+    command        = var.worker_command
+    mountPoints    = []
+    portMappings   = []
+    systemControls = []
+    volumesFrom    = []
 
     environment = [for name, value in merge(var.worker_environment, local.appconfig_client_environment) : {
       name  = name
@@ -338,6 +354,7 @@ resource "aws_ecs_task_definition" "api" {
   memory                   = "2048"
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.api_task.arn
+  enable_fault_injection   = false
   container_definitions    = jsonencode([local.api_container, local.appconfig_agent_container, local.log_router_container])
 
   runtime_platform {
@@ -356,6 +373,7 @@ resource "aws_ecs_task_definition" "worker" {
   memory                   = "1024"
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.worker_task.arn
+  enable_fault_injection   = false
   container_definitions    = jsonencode([local.worker_container_base, local.appconfig_agent_container, local.log_router_container])
 
   runtime_platform {
