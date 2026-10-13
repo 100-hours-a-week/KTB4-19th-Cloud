@@ -10,6 +10,32 @@ data "aws_iam_role" "rehearsal_source" {
   name = var.rehearsal_source_ec2_role_name
 }
 
+data "aws_security_group" "ssm_endpoints" {
+  count = var.enable_rehearsal_source ? 1 : 0
+
+  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+
+  filter {
+    name   = "group-name"
+    values = ["zipsai-shared-ssm-endpoints-sg"]
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ssm_from_rehearsal_source" {
+  count = var.enable_rehearsal_source ? 1 : 0
+
+  security_group_id            = data.aws_security_group.ssm_endpoints[0].id
+  description                  = "HTTPS from the temporary Staging rehearsal source"
+  referenced_security_group_id = data.aws_security_group.rehearsal_source[0].id
+  from_port                    = 443
+  ip_protocol                  = "tcp"
+  to_port                      = 443
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ssm-from-rehearsal-source"
+  })
+}
+
 resource "aws_vpc_security_group_egress_rule" "mysql_to_rehearsal_source" {
   count = var.enable_rehearsal_source ? 1 : 0
 
