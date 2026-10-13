@@ -35,7 +35,7 @@ module "monitoring" {
   grafana_admin_password_parameter_name = var.grafana_admin_password_parameter_name
 
   compose_config_gzip_base64      = base64gzip(file("${path.root}/../../monitoring/docker-compose.yml"))
-  prometheus_config_gzip_base64   = base64gzip(file("${path.root}/../../monitoring/prometheus.yml"))
+  prometheus_config_gzip_base64   = base64gzip(file("${path.root}/../../monitoring/prometheus-bootstrap.yml"))
   loki_config_gzip_base64         = base64gzip(file("${path.root}/../../monitoring/loki.yml"))
   grafana_datasources_gzip_base64 = base64gzip(file("${path.root}/../../monitoring/grafana-datasources.yml"))
 }

@@ -106,11 +106,11 @@ resource "aws_vpc_security_group_egress_rule" "monitoring_dns_tcp" {
 
 resource "aws_vpc_security_group_egress_rule" "monitoring_backend_metrics" {
   security_group_id = aws_security_group.monitoring_server.id
-  description       = "Prometheus scrape of Backend metrics"
+  description       = "Prometheus scrape of Backend and migration Worker metrics"
   cidr_ipv4         = aws_vpc.zipsai.cidr_block
   from_port         = 8080
   ip_protocol       = "tcp"
-  to_port           = 8080
+  to_port           = 8081
 
   tags = var.shared_tags
 }

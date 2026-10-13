@@ -5,54 +5,64 @@ locals {
   profile_name = "database-migration"
 
   initial_configuration = {
-    writer               = "V1"
-    shadowReadPercent    = 0
-    v2ReadPercent        = 0
-    forwardWorkerEnabled = false
-    reverseWorkerEnabled = false
+    migration = {
+      mode                 = "V1_PRIMARY"
+      switchAt             = null
+      workerMode           = "PAUSED"
+      forwardWorkerEnabled = false
+      reverseWorkerEnabled = false
+      v2ReadPercent        = 0
+      shadowReadPercent    = 0
+    }
   }
 
   configuration_schema = {
-    "$schema" = "http://json-schema.org/draft-04/schema#"
-    type      = "object"
-    required = [
-      "writer",
-      "shadowReadPercent",
-      "v2ReadPercent",
-      "forwardWorkerEnabled",
-      "reverseWorkerEnabled",
-    ]
+    "$schema"            = "http://json-schema.org/draft-04/schema#"
+    type                 = "object"
+    required             = ["migration"]
     additionalProperties = false
     properties = {
-      writer = {
-        type = "string"
-        enum = ["V1", "V2"]
-      }
-      shadowReadPercent = {
-        type    = "integer"
-        minimum = 0
-        maximum = 100
-      }
-      v2ReadPercent = {
-        type    = "integer"
-        minimum = 0
-        maximum = 100
-      }
-      forwardWorkerEnabled = {
-        type = "boolean"
-      }
-      reverseWorkerEnabled = {
-        type = "boolean"
-      }
-    }
-    not = {
-      required = ["forwardWorkerEnabled", "reverseWorkerEnabled"]
-      properties = {
-        forwardWorkerEnabled = {
-          enum = [true]
-        }
-        reverseWorkerEnabled = {
-          enum = [true]
+      migration = {
+        type = "object"
+        required = [
+          "mode",
+          "switchAt",
+          "workerMode",
+          "forwardWorkerEnabled",
+          "reverseWorkerEnabled",
+          "v2ReadPercent",
+          "shadowReadPercent",
+        ]
+        additionalProperties = false
+        properties = {
+          mode = {
+            type = "string"
+            enum = ["V1_PRIMARY", "V2_PRIMARY"]
+          }
+          switchAt = {
+            type   = ["string", "null"]
+            format = "date-time"
+          }
+          workerMode = {
+            type = "string"
+            enum = ["PAUSED", "RUNNING", "DRAINING"]
+          }
+          forwardWorkerEnabled = {
+            type = "boolean"
+          }
+          reverseWorkerEnabled = {
+            type = "boolean"
+          }
+          v2ReadPercent = {
+            type    = "integer"
+            minimum = 0
+            maximum = 100
+          }
+          shadowReadPercent = {
+            type    = "integer"
+            minimum = 0
+            maximum = 100
+          }
         }
       }
     }

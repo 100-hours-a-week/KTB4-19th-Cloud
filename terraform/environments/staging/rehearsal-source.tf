@@ -36,6 +36,51 @@ resource "aws_vpc_security_group_ingress_rule" "ssm_from_rehearsal_source" {
   })
 }
 
+resource "aws_vpc_security_group_ingress_rule" "rehearsal_source_node_exporter" {
+  count = var.enable_rehearsal_source ? 1 : 0
+
+  security_group_id            = data.aws_security_group.rehearsal_source[0].id
+  description                  = "Node Exporter scrape from the private monitoring server"
+  referenced_security_group_id = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
+  from_port                    = 9100
+  ip_protocol                  = "tcp"
+  to_port                      = 9100
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-rehearsal-source-node-exporter"
+  })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "rehearsal_source_mysql_exporter" {
+  count = var.enable_rehearsal_source ? 1 : 0
+
+  security_group_id            = data.aws_security_group.rehearsal_source[0].id
+  description                  = "MySQL Exporter scrape from the private monitoring server"
+  referenced_security_group_id = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
+  from_port                    = 9104
+  ip_protocol                  = "tcp"
+  to_port                      = 9104
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-rehearsal-source-mysql-exporter"
+  })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "rehearsal_source_application_metrics" {
+  count = var.enable_rehearsal_source ? 1 : 0
+
+  security_group_id            = data.aws_security_group.rehearsal_source[0].id
+  description                  = "Backend and migration Worker metrics from the private monitoring server"
+  referenced_security_group_id = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
+  from_port                    = 8080
+  ip_protocol                  = "tcp"
+  to_port                      = 8081
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-rehearsal-source-application-metrics"
+  })
+}
+
 resource "aws_vpc_security_group_egress_rule" "mysql_to_rehearsal_source" {
   count = var.enable_rehearsal_source ? 1 : 0
 
