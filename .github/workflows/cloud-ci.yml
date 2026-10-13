@@ -31,6 +31,11 @@ jobs:
           OPENROUTER_API_KEY: validation-only
           # AI API의 Compose 필수 변수 형식 검증용 값이다.
           LLM_MODEL: validation-model
+          LANGFUSE_SECRET_KEY: validation-only
+          LANGFUSE_PUBLIC_KEY: validation-only
+          LANGFUSE_BASE_URL: https://example.invalid
+          QDRANT_ADMIN_API_KEY: validation-only
+          QDRANT_READ_ONLY_API_KEY: validation-only
         run: docker compose config -q
 
       - name: Create temporary TLS certificate for Nginx validation
