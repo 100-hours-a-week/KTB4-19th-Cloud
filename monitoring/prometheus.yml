@@ -18,6 +18,15 @@ scrape_configs:
         labels:
           environment: staging
           service: migration-worker
+      - targets: ["mysql-v1.prod.zipsai.internal:8080"]
+        labels:
+          environment: prod
+          service: backend
+      # V2 복원 후 전용 Worker 기동 전에는 DOWN이 정상이다. 0 처리로 숨기지 않는다.
+      - targets: ["mysql-v1.prod.zipsai.internal:8081"]
+        labels:
+          environment: prod
+          service: migration-worker
 
   - job_name: mysql-host
     static_configs:

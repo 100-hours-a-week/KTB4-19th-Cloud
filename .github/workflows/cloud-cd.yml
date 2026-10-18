@@ -129,6 +129,8 @@ jobs:
               commands: (
                 [
                 "set -eu",
+                # 전환 중인 Worker를 기본 CD의 remove-orphans로 제거하지 않는다.
+                "test -z \"$(sudo docker ps -q --filter label=com.docker.compose.project=zipsai --filter label=com.docker.compose.service=migration-worker)\" || { echo Migration-Worker-running-use-migration-runbook >&2; exit 1; }",
                 ("sudo install -d -m 0755 " + $app_dir + "/nginx"),
                 ("printf '\''%s'\'' '\''" + $compose + "'\'' | base64 -d | sudo tee " + $app_dir + "/compose.yaml > /dev/null"),
                 ("printf '\''%s'\'' '\''" + $nginx + "'\'' | base64 -d | sudo tee " + $app_dir + "/nginx/default.conf > /dev/null"),
@@ -136,6 +138,8 @@ jobs:
                 ("BACKEND_IMAGE_TAG=$(sudo sed -n '\''s/^BACKEND_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1)"),
                 ("AI_API_IMAGE_TAG=$(sudo sed -n '\''s/^AI_API_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true)"),
                 ("EMBEDDING_IMAGE_TAG=$(sudo sed -n '\''s/^EMBEDDING_IMAGE_TAG=//p'\'' " + $app_dir + "/.env 2>/dev/null | head -n 1 || true)"),
+                ("MIGRATION_V2_DB_URL=$(sudo sed -n '\''s/^MIGRATION_V2_DB_URL=//p'\'' " + $app_dir + "/.env | head -n 1)"),
+                ("MIGRATION_WORKER_IMAGE_TAG=$(sudo sed -n '\''s/^MIGRATION_WORKER_IMAGE_TAG=//p'\'' " + $app_dir + "/.env | head -n 1)"),
                 "test -n \"$BACKEND_IMAGE_TAG\"",
                 "if test -n \"$AI_API_IMAGE_TAG\" || test -n \"$EMBEDDING_IMAGE_TAG\"; then test -n \"$AI_API_IMAGE_TAG\" && test -n \"$EMBEDDING_IMAGE_TAG\"; fi",
                 ("MYSQL_PASSWORD=$(aws ssm get-parameter --name /zipsai/prod/mysql/password --with-decryption --query Parameter.Value --output text --region " + $aws_region + ")"),
@@ -151,6 +155,8 @@ jobs:
                 ("LLM_MODEL=$(aws ssm get-parameter --name /zipsai/prod/ai/llm-model --query Parameter.Value --output text --region " + $aws_region + ")"),
                 ("{ printf '\''BACKEND_IMAGE_TAG=%s\\n'\'' \"$BACKEND_IMAGE_TAG\"; printf '\''AI_API_IMAGE_TAG=%s\\n'\'' \"$AI_API_IMAGE_TAG\"; printf '\''EMBEDDING_IMAGE_TAG=%s\\n'\'' \"$EMBEDDING_IMAGE_TAG\"; printf '\''MYSQL_PASSWORD=%s\\n'\'' \"$MYSQL_PASSWORD\"; printf '\''MYSQL_ROOT_PASSWORD=%s\\n'\'' \"$MYSQL_ROOT_PASSWORD\"; printf '\''DB_V2_PASSWORD=%s\\n'\'' \"$DB_V2_PASSWORD\"; printf '\''JWT_SECRET=%s\\n'\'' \"$JWT_SECRET\"; printf '\''LLM_BASE_URL=https://openrouter.ai/api/v1\\n'\''; printf '\''OPENROUTER_API_KEY=%s\\n'\'' \"$OPENROUTER_API_KEY\"; printf '\''LANGFUSE_SECRET_KEY=%s\\n'\'' \"$LANGFUSE_SECRET_KEY\"; printf '\''LANGFUSE_PUBLIC_KEY=%s\\n'\'' \"$LANGFUSE_PUBLIC_KEY\"; printf '\''LANGFUSE_BASE_URL=%s\\n'\'' \"$LANGFUSE_BASE_URL\"; printf '\''QDRANT_ADMIN_API_KEY=%s\\n'\'' \"$QDRANT_ADMIN_API_KEY\"; printf '\''QDRANT_READ_ONLY_API_KEY=%s\\n'\'' \"$QDRANT_READ_ONLY_API_KEY\"; printf '\''LLM_MODEL=%s\\n'\'' \"$LLM_MODEL\"; } | sudo tee " + $app_dir + "/.env > /dev/null"),
                 ("sudo chown root:root " + $app_dir + "/.env && sudo chmod 600 " + $app_dir + "/.env"),
+                # URL은 복원 검증 후 별도로 설정한다. 이 CD가 임의로 활성화하지 않는다.
+                ("{ printf '\''MIGRATION_V2_DB_URL=%s\\n'\'' \"$MIGRATION_V2_DB_URL\"; printf '\''MIGRATION_WORKER_IMAGE_TAG=%s\\n'\'' \"$MIGRATION_WORKER_IMAGE_TAG\"; } | sudo tee -a " + $app_dir + "/.env > /dev/null"),
                 ("aws ecr get-login-password --region " + $aws_region + " | sudo docker login --username AWS --password-stdin " + $ecr_registry),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml config -q"),
                 ("sudo docker compose --env-file " + $app_dir + "/.env -f " + $app_dir + "/compose.yaml up -d --remove-orphans --quiet-pull"),
