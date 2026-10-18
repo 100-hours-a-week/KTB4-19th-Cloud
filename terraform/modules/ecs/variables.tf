@@ -167,10 +167,39 @@ variable "certificate_arn" {
   nullable    = true
 }
 
+variable "enable_https" {
+  description = "Explicit HTTPS switch for certificates created in the same plan. Null preserves ARN-based behavior."
+  type        = bool
+  default     = null
+  nullable    = true
+}
+
 variable "health_check_path" {
   description = "ALB readiness path exposed by the API."
   type        = string
   default     = "/api/actuator/health/readiness"
+}
+
+variable "api_health_check_grace_period_seconds" {
+  description = "Time ECS ignores unhealthy checks after the API task starts."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.api_health_check_grace_period_seconds >= 0 && var.api_health_check_grace_period_seconds <= 2147483647 && floor(var.api_health_check_grace_period_seconds) == var.api_health_check_grace_period_seconds
+    error_message = "API health check grace period must be a whole number between 0 and 2147483647 seconds."
+  }
+}
+
+variable "api_health_check_interval_seconds" {
+  description = "ALB readiness check interval; must exceed the fixed 5-second timeout."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.api_health_check_interval_seconds > 5 && var.api_health_check_interval_seconds <= 300 && floor(var.api_health_check_interval_seconds) == var.api_health_check_interval_seconds
+    error_message = "API health check interval must be a whole number between 6 and 300 seconds."
+  }
 }
 
 variable "liveness_check_path" {

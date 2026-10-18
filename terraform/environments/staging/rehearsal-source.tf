@@ -140,13 +140,16 @@ resource "aws_iam_role_policy" "rehearsal_source_parameters" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid    = "ReadStagingV2DatabasePassword"
+      Sid    = "ReadStagingV2DatabasePasswords"
       Effect = "Allow"
       Action = [
         "ssm:GetParameter",
         "ssm:GetParameters",
       ]
-      Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/password"
+      Resource = [
+        "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/password",
+        "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/zipsai/staging/mysql/replication-password",
+      ]
     }]
   })
 }

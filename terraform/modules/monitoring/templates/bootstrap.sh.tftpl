@@ -73,19 +73,6 @@ install -d -o nobody -g nogroup -m 0750 /data/monitoring/prometheus
 install -d -o 10001 -g 10001 -m 0750 /data/monitoring/loki
 install -d -o 472 -g 472 -m 0750 /data/monitoring/grafana
 
-install_config() {
-  local content="$1"
-  local destination="$2"
-
-  printf '%s' "$${content}" | base64 --decode | gzip --decompress > "$${destination}"
-  chmod 0644 "$${destination}"
-}
-
-install_config '${compose_config_gzip_base64}' /opt/zipsai-monitoring/docker-compose.yml
-install_config '${prometheus_config_gzip_base64}' /opt/zipsai-monitoring/config/prometheus.yml
-install_config '${loki_config_gzip_base64}' /opt/zipsai-monitoring/config/loki.yml
-install_config '${grafana_datasources_gzip_base64}' /opt/zipsai-monitoring/config/grafana-datasources.yml
-
 cat >/usr/local/bin/zipsai-monitoring-refresh-secret <<'SCRIPT'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -125,12 +112,7 @@ UNIT
 systemctl daemon-reload
 systemctl enable zipsai-monitoring.service
 
-if /usr/local/bin/zipsai-monitoring-refresh-secret; then
-  docker compose -f /opt/zipsai-monitoring/docker-compose.yml config --quiet
-  systemctl start zipsai-monitoring.service
-else
-  echo "Grafana password parameter is not ready; start zipsai-monitoring.service after creating it." >&2
-fi
+echo "Host bootstrap ready. Monitoring configuration and initial start are managed by SSM."
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*

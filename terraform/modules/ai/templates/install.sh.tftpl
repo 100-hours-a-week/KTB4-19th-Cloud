@@ -1,0 +1,7 @@
+install -d -m 0700 -o root -g root /opt/zipsai
+printf '%s' '${manifest_base64}' | base64 -d > /opt/zipsai/deployment.json
+printf '%s' '${compose_base64}' | base64 -d > /opt/zipsai/compose.yaml
+printf '%s' '${prepare_base64}' | base64 -d > /opt/zipsai/prepare-env.py
+printf '%s' '${deploy_base64}' | base64 -d > /opt/zipsai/deploy.sh
+chmod 0600 /opt/zipsai/deployment.json /opt/zipsai/compose.yaml /opt/zipsai/prepare-env.py
+chmod 0700 /opt/zipsai/deploy.sh

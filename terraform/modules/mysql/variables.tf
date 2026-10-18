@@ -101,3 +101,20 @@ variable "kms_key_id" {
   type        = string
   default     = null
 }
+variable "enable_exporter_configuration" {
+  description = "Opt in to native MySQL Exporter account/configuration via SSM. V1 is excluded."
+  type        = bool
+  default     = false
+}
+
+variable "exporter_password_parameter_name" {
+  description = "Existing SecureString name, never its value."
+  type        = string
+  default     = null
+  validation {
+    condition = var.exporter_password_parameter_name == null ? true : can(
+      regex("^/zipsai/(staging/mysql|prod/mysql-v2)/exporter-password$", var.exporter_password_parameter_name)
+    )
+    error_message = "Use the approved environment-specific exporter password parameter."
+  }
+}

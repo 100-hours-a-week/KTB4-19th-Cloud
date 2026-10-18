@@ -22,3 +22,19 @@ output "baseline_deployment_state" {
   description = "State of the initial safe AppConfig deployment."
   value       = aws_appconfig_deployment.baseline.state
 }
+
+output "configuration_versions" {
+  description = "Hosted configuration versions prepared for the database migration rehearsal."
+  value = {
+    baseline = {
+      version_label  = null
+      version_number = aws_appconfig_hosted_configuration_version.baseline.version_number
+    }
+    reusable = {
+      for name, configuration in aws_appconfig_hosted_configuration_version.reusable : name => {
+        version_label  = configuration.version_label
+        version_number = configuration.version_number
+      }
+    }
+  }
+}

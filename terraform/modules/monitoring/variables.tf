@@ -45,22 +45,7 @@ variable "grafana_admin_password_parameter_name" {
   type        = string
 }
 
-variable "compose_config_gzip_base64" {
-  description = "Gzip-compressed, base64-encoded Docker Compose configuration."
-  type        = string
-}
-
-variable "prometheus_config_gzip_base64" {
-  description = "Gzip-compressed, base64-encoded Prometheus configuration."
-  type        = string
-}
-
-variable "loki_config_gzip_base64" {
-  description = "Gzip-compressed, base64-encoded Loki configuration."
-  type        = string
-}
-
-variable "grafana_datasources_gzip_base64" {
-  description = "Gzip-compressed, base64-encoded Grafana datasource provisioning."
+variable "ami_id" {
+  description = "Pinned monitoring AMI. Changing it requires an explicit instance replacement review."
   type        = string
 }

@@ -37,6 +37,8 @@ resource "aws_ssm_document" "prometheus_config" {
 }
 
 resource "aws_ssm_association" "prometheus_config" {
+  # 신규 호스트의 최초 설정 배치와 서비스 시작을 먼저 완료한다.
+  depends_on       = [aws_ssm_association.stack_config]
   name             = aws_ssm_document.prometheus_config.name
   document_version = aws_ssm_document.prometheus_config.latest_version
 

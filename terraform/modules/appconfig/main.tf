@@ -16,6 +16,79 @@ locals {
     }
   }
 
+  reusable_configurations = {
+    "forward-worker-running-v1" = {
+      description = "Run only the V1 to V2 Outbox Worker while reads remain on V1."
+      migration = merge(local.initial_configuration.migration, {
+        workerMode           = "RUNNING"
+        forwardWorkerEnabled = true
+      })
+    }
+    "shadow-read-10-v1" = {
+      description = "Compare 10 percent of V1 reads with V2 while responses remain on V1."
+      migration = merge(local.initial_configuration.migration, {
+        workerMode           = "RUNNING"
+        forwardWorkerEnabled = true
+        shadowReadPercent    = 10
+      })
+    }
+    "shadow-read-100-v1" = {
+      description = "Compare all V1 reads with V2 while responses remain on V1."
+      migration = merge(local.initial_configuration.migration, {
+        workerMode           = "RUNNING"
+        forwardWorkerEnabled = true
+        shadowReadPercent    = 100
+      })
+    }
+    "v2-read-10-v1" = {
+      description = "Serve 10 percent of reads from V2 after full shadow-read validation."
+      migration = merge(local.initial_configuration.migration, {
+        workerMode           = "RUNNING"
+        forwardWorkerEnabled = true
+        v2ReadPercent        = 10
+        shadowReadPercent    = 100
+      })
+    }
+    "v2-read-50-v1" = {
+      description = "Serve 50 percent of reads from V2 after full shadow-read validation."
+      migration = merge(local.initial_configuration.migration, {
+        workerMode           = "RUNNING"
+        forwardWorkerEnabled = true
+        v2ReadPercent        = 50
+        shadowReadPercent    = 100
+      })
+    }
+    "v2-read-100-v1" = {
+      description = "Serve all reads from V2 while V1 remains the writer."
+      migration = merge(local.initial_configuration.migration, {
+        workerMode           = "RUNNING"
+        forwardWorkerEnabled = true
+        v2ReadPercent        = 100
+        shadowReadPercent    = 100
+      })
+    }
+    "drain-workers-v2" = {
+      description = "Drain in-flight migration work while V2 remains the primary database."
+      migration = merge(local.initial_configuration.migration, {
+        mode                 = "V2_PRIMARY"
+        workerMode           = "DRAINING"
+        forwardWorkerEnabled = true
+        reverseWorkerEnabled = true
+        v2ReadPercent        = 100
+        shadowReadPercent    = 100
+      })
+    }
+    "complete-migration-v2" = {
+      description = "Pause migration workers after V2 becomes the stable primary database."
+      migration = merge(local.initial_configuration.migration, {
+        mode              = "V2_PRIMARY"
+        workerMode        = "PAUSED"
+        v2ReadPercent     = 100
+        shadowReadPercent = 0
+      })
+    }
+  }
+
   configuration_schema = {
     "$schema"            = "http://json-schema.org/draft-04/schema#"
     type                 = "object"
@@ -105,6 +178,19 @@ resource "aws_appconfig_hosted_configuration_version" "baseline" {
   description              = "Safe baseline before database migration starts."
   content_type             = "application/json"
   content                  = jsonencode(local.initial_configuration)
+}
+
+resource "aws_appconfig_hosted_configuration_version" "reusable" {
+  for_each = local.reusable_configurations
+
+  application_id           = aws_appconfig_application.this.id
+  configuration_profile_id = aws_appconfig_configuration_profile.database_migration.configuration_profile_id
+  description              = each.value.description
+  content_type             = "application/json"
+  content = jsonencode({
+    migration = each.value.migration
+  })
+  version_label = each.key
 }
 
 resource "aws_appconfig_deployment" "baseline" {

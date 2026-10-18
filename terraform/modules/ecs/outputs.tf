@@ -3,6 +3,11 @@ output "cluster_arn" {
   value       = aws_ecs_cluster.this.arn
 }
 
+output "deployment_contract_parameter_name" {
+  description = "SSM parameter containing infrastructure inputs for Backend CD."
+  value       = aws_ssm_parameter.deployment_contract.name
+}
+
 output "api_service_name" {
   description = "API ECS service name."
   value       = aws_ecs_service.api.name

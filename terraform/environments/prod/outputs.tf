@@ -88,31 +88,12 @@ output "worker_tasks_security_group_id" {
   value       = aws_security_group.worker_tasks.id
 }
 
-output "valkey_endpoint_address" {
-  description = "Production Valkey primary endpoint address."
-  value       = module.valkey.endpoint_address
-}
-
-output "valkey_endpoint_port" {
-  description = "Production Valkey primary endpoint port."
-  value       = module.valkey.endpoint_port
-}
-
-output "valkey_username" {
-  description = "Production Valkey RBAC username."
-  value       = module.valkey.username
-}
-
-output "valkey_password_parameter_arn" {
-  description = "Production Valkey password SSM parameter ARN."
-  value       = module.valkey.password_parameter_arn
-}
-
 output "appconfig_runtime_configuration" {
   description = "Production AppConfig identifiers used by the Agent endpoint."
   value = {
     application = module.appconfig.application_name
     environment = module.appconfig.environment_name
     profile     = module.appconfig.configuration_profile_name
+    versions    = module.appconfig.configuration_versions
   }
 }

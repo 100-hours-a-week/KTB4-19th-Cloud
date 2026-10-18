@@ -30,14 +30,11 @@ module "monitoring" {
   security_group_id    = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
   private_dns_zone_id  = data.terraform_remote_state.network.outputs.private_dns_zone_id
   instance_type        = var.instance_type
+  ami_id               = var.ami_id
   data_volume_size_gib = var.data_volume_size_gib
 
   grafana_admin_password_parameter_name = var.grafana_admin_password_parameter_name
 
-  compose_config_gzip_base64      = base64gzip(file("${path.root}/../../monitoring/docker-compose.yml"))
-  prometheus_config_gzip_base64   = base64gzip(file("${path.root}/../../monitoring/prometheus-bootstrap.yml"))
-  loki_config_gzip_base64         = base64gzip(file("${path.root}/../../monitoring/loki.yml"))
-  grafana_datasources_gzip_base64 = base64gzip(file("${path.root}/../../monitoring/grafana-datasources.yml"))
 }
 
 resource "aws_route53_record" "legacy_mysql" {

@@ -93,31 +93,12 @@ output "document_jobs_dlq_alarm_arn" {
   value       = module.document_jobs.dlq_alarm_arn
 }
 
-output "valkey_endpoint_address" {
-  description = "Staging Valkey primary endpoint address."
-  value       = module.valkey.endpoint_address
-}
-
-output "valkey_endpoint_port" {
-  description = "Staging Valkey primary endpoint port."
-  value       = module.valkey.endpoint_port
-}
-
-output "valkey_username" {
-  description = "Staging Valkey RBAC username."
-  value       = module.valkey.username
-}
-
-output "valkey_password_parameter_arn" {
-  description = "Staging Valkey password SSM parameter ARN."
-  value       = module.valkey.password_parameter_arn
-}
-
 output "appconfig_runtime_configuration" {
   description = "Staging AppConfig identifiers used by the Agent endpoint."
   value = {
     application = module.appconfig.application_name
     environment = module.appconfig.environment_name
     profile     = module.appconfig.configuration_profile_name
+    versions    = module.appconfig.configuration_versions
   }
 }

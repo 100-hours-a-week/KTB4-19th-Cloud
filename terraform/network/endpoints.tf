@@ -51,6 +51,20 @@ resource "aws_vpc_security_group_ingress_rule" "ssm_https_data_2a" {
   tags = var.shared_tags
 }
 
+# Private DNS routes SSM/ssmmessages traffic to these endpoints, not to NAT.
+# API/Worker tasks, AI hosts and Redis share this private application subnet.
+# IAM still restricts which parameters each workload may read.
+resource "aws_vpc_security_group_ingress_rule" "ssm_https_app_2c" {
+  security_group_id = aws_security_group.ssm_endpoints.id
+  description       = "HTTPS from private application workloads in ap-northeast-2c"
+  cidr_ipv4         = aws_subnet.private_app_2c.cidr_block
+  from_port         = 443
+  ip_protocol       = "tcp"
+  to_port           = 443
+
+  tags = var.shared_tags
+}
+
 resource "aws_vpc_security_group_ingress_rule" "ssm_https_monitoring" {
   security_group_id            = aws_security_group.ssm_endpoints.id
   description                  = "HTTPS from the private monitoring server"

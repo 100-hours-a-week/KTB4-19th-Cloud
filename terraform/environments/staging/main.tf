@@ -68,6 +68,9 @@ resource "aws_vpc_security_group_egress_rule" "worker_tasks_all_ipv4" {
 module "mysql" {
   source = "../../modules/mysql"
 
+  enable_exporter_configuration    = true
+  exporter_password_parameter_name = "/zipsai/staging/mysql/exporter-password"
+
   name_prefix    = local.name_prefix
   common_tags    = local.common_tags
   vpc_id         = data.terraform_remote_state.network.outputs.vpc_id

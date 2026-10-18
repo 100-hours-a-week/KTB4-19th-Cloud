@@ -1,0 +1,21 @@
+services:
+  embedding:
+    image: ${repository_url}:$${EMBEDDING_IMAGE_TAG:?Choose a SHA7 image tag}
+    platform: linux/amd64
+    restart: unless-stopped
+    ports: ["8000:8000"]
+    env_file: ["runtime.env"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${aws_region}
+        awslogs-group: ${log_group}
+        awslogs-stream: embedding
+        mode: non-blocking
+        max-buffer-size: 4m

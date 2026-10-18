@@ -1,4 +1,5 @@
 locals {
+  https_enabled         = var.enable_https != null ? var.enable_https : var.certificate_arn != null
   api_container_name    = "api"
   worker_container_name = "worker"
   log_router_name       = "log-router"
@@ -363,6 +364,12 @@ resource "aws_ecs_task_definition" "api" {
   }
 
   tags = var.common_tags
+
+  # 최초 Service 생성용 정의. 이후 실행 사양/컨테이너 설정은 앱 저장소·CD 소유다.
+  # 기존 정의를 유지하여 관리 경계 변경만으로 Task를 재배포하지 않는다.
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_ecs_task_definition" "worker" {
@@ -382,6 +389,10 @@ resource "aws_ecs_task_definition" "worker" {
   }
 
   tags = var.common_tags
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_security_group" "alb" {
@@ -408,7 +419,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_https" {
-  count = var.certificate_arn == null ? 0 : 1
+  count = local.https_enabled ? 1 : 0
 
   security_group_id = aws_security_group.alb.id
   description       = "Public HTTPS access"
@@ -466,7 +477,7 @@ resource "aws_lb_target_group" "api" {
     path                = var.health_check_path
     protocol            = "HTTP"
     port                = "traffic-port"
-    interval            = 30
+    interval            = var.api_health_check_interval_seconds
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -482,11 +493,11 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type             = var.certificate_arn == null ? "forward" : "redirect"
-    target_group_arn = var.certificate_arn == null ? aws_lb_target_group.api.arn : null
+    type             = local.https_enabled ? "redirect" : "forward"
+    target_group_arn = local.https_enabled ? null : aws_lb_target_group.api.arn
 
     dynamic "redirect" {
-      for_each = var.certificate_arn == null ? [] : [1]
+      for_each = local.https_enabled ? [1] : []
 
       content {
         port        = "443"
@@ -500,7 +511,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_listener" "https" {
-  count = var.certificate_arn == null ? 0 : 1
+  count = local.https_enabled ? 1 : 0
 
   load_balancer_arn = aws_lb.api.arn
   port              = 443
@@ -523,7 +534,7 @@ resource "aws_ecs_service" "api" {
   desired_count                      = var.api_desired_count
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
-  health_check_grace_period_seconds  = 60
+  health_check_grace_period_seconds  = var.api_health_check_grace_period_seconds
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
   enable_execute_command             = true
@@ -548,6 +559,12 @@ resource "aws_ecs_service" "api" {
   depends_on = [aws_lb_listener.http, aws_lb_listener.https]
 
   tags = var.common_tags
+
+  # CD가 선택한 실행 Revision은 Terraform apply로 되돌리지 않는다.
+  # desired_count는 아직 Terraform 관리이며 의도적으로 무시하지 않는다.
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
 
 resource "aws_ecs_service" "worker" {
@@ -573,4 +590,8 @@ resource "aws_ecs_service" "worker" {
   }
 
   tags = var.common_tags
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }

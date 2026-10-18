@@ -50,6 +50,25 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
+data "aws_cloudfront_cache_policy" "api_disabled" {
+  count = var.api_origin_domain_name == null ? 0 : 1
+  name  = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_origin_request_policy" "api_forward" {
+  count = var.api_origin_domain_name == null ? 0 : 1
+  name  = "Managed-AllViewerExceptHostHeader"
+}
+
+resource "aws_cloudfront_function" "spa" {
+  count   = var.api_origin_domain_name == null ? 0 : 1
+  name    = "${var.name_prefix}-frontend-spa"
+  runtime = "cloudfront-js-2.0"
+  comment = "Rewrite SPA navigation only; never replace API errors with index.html"
+  publish = true
+  code    = file("${path.module}/functions/spa.js")
+}
+
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -64,6 +83,22 @@ resource "aws_cloudfront_distribution" "frontend" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
+  dynamic "origin" {
+    for_each = var.api_origin_domain_name == null ? [] : [var.api_origin_domain_name]
+    content {
+      domain_name = origin.value
+      origin_id   = "${var.name_prefix}-api-alb"
+      custom_origin_config {
+        http_port                = 80
+        https_port               = 443
+        origin_protocol_policy   = "https-only"
+        origin_ssl_protocols     = ["TLSv1.2"]
+        origin_read_timeout      = 60
+        origin_keepalive_timeout = 5
+      }
+    }
+  }
+
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
@@ -71,20 +106,41 @@ resource "aws_cloudfront_distribution" "frontend" {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+
+    dynamic "function_association" {
+      for_each = var.api_origin_domain_name == null ? [] : [1]
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.spa[0].arn
+      }
+    }
   }
 
-  custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 0
+  dynamic "ordered_cache_behavior" {
+    # Exact /api is protected from the SPA fallback as well as /api/*.
+    for_each = var.api_origin_domain_name == null ? [] : ["/api", "/api/*"]
+    content {
+      path_pattern             = ordered_cache_behavior.value
+      allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+      cached_methods           = ["GET", "HEAD"]
+      target_origin_id         = "${var.name_prefix}-api-alb"
+      viewer_protocol_policy   = "https-only"
+      compress                 = false
+      cache_policy_id          = data.aws_cloudfront_cache_policy.api_disabled[0].id
+      origin_request_policy_id = data.aws_cloudfront_origin_request_policy.api_forward[0].id
+    }
   }
 
-  custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 0
+  dynamic "custom_error_response" {
+    # Preserve the old SPA mapping only for S3-only users. API responses keep their status/body.
+    # TTL zero also disables CloudFront's separate error cache, not just normal response caching.
+    for_each = var.api_origin_domain_name == null ? [403, 404] : [400, 403, 404, 405, 414, 416, 500, 501, 502, 503, 504]
+    content {
+      error_code            = custom_error_response.value
+      response_code         = var.api_origin_domain_name == null ? 200 : null
+      response_page_path    = var.api_origin_domain_name == null ? "/index.html" : null
+      error_caching_min_ttl = 0
+    }
   }
 
   restrictions {

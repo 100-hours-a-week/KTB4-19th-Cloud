@@ -32,3 +32,10 @@ variable "price_class" {
   type        = string
   default     = "PriceClass_200"
 }
+
+variable "api_origin_domain_name" {
+  description = "Optional HTTPS API origin. Null preserves the existing S3-only distribution."
+  type        = string
+  default     = null
+  nullable    = true
+}

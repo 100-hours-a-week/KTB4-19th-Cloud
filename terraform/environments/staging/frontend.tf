@@ -83,11 +83,15 @@ resource "aws_acm_certificate_validation" "api" {
 module "frontend" {
   source = "../../modules/frontend"
 
-  name_prefix     = local.name_prefix
-  common_tags     = local.common_tags
-  bucket_name     = "zipsai-staging-frontend-origin"
-  domain_name     = var.enable_custom_domains ? local.frontend_domain_name : null
-  certificate_arn = local.frontend_certificate_arn
+  name_prefix            = local.name_prefix
+  common_tags            = local.common_tags
+  bucket_name            = "zipsai-staging-frontend-origin"
+  domain_name            = var.enable_custom_domains ? local.frontend_domain_name : null
+  certificate_arn        = local.frontend_certificate_arn
+  api_origin_domain_name = var.enable_custom_domains ? local.api_domain_name : null
+
+  # The HTTPS origin DNS must exist before CloudFront attempts API requests.
+  depends_on = [aws_route53_record.api, aws_acm_certificate_validation.api]
 }
 
 resource "aws_route53_record" "frontend" {

@@ -63,9 +63,9 @@ variable "backend_image_tag" {
 }
 
 variable "api_desired_count" {
-  description = "Staging API task count. Raise to two after DB and Parameter Store validation."
+  description = "Staging API baseline after initial DB/login/Redis validation; power scripts may temporarily suspend it."
   type        = number
-  default     = 0
+  default     = 2
 }
 
 variable "worker_desired_count" {
@@ -81,9 +81,9 @@ variable "worker_command" {
 }
 
 variable "ai_api_url" {
-  description = "RunPod AI API endpoint supplied before the ECS API service starts."
+  description = "Optional override; defaults to the environment's private AI API EC2 DNS."
   type        = string
-  default     = "https://runpod-endpoint-to-be-configured.invalid"
+  default     = null
 }
 
 variable "uploads_bucket_name" {
@@ -93,20 +93,7 @@ variable "uploads_bucket_name" {
 }
 
 variable "enable_custom_domains" {
-  description = "Create ACM validation and Route 53 records after Gabia delegates DNS to Route 53."
+  description = "Staging-only HTTPS and DNS for v2.zipsai.co.kr and api-v2.zipsai.co.kr. V1/prod are not switched."
   type        = bool
-  default     = false
-}
-
-variable "valkey_password" {
-  description = "Valkey password supplied only during plan/apply and never stored in State."
-  type        = string
-  sensitive   = true
-  ephemeral   = true
-}
-
-variable "valkey_password_version" {
-  description = "Increment when rotating the Staging Valkey password."
-  type        = number
-  default     = 1
+  default     = true
 }

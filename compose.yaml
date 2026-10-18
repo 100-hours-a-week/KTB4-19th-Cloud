@@ -45,9 +45,10 @@ services:
     # Container 내부 Port 표시. EC2 외부로 공개하지 않는다.
     expose:
       - "3306"
-    # 외부 공개 없이 SSM Port Forwarding을 통한 운영 조회만 허용한다.
+    # SSM 운영 조회와 V2 DB의 사설 복제 접속을 허용한다. 접속 주체는 SG로 제한한다.
     ports:
       - "127.0.0.1:3306:3306"
+      - "10.0.1.239:3306:3306"
     environment:
       MYSQL_DATABASE: zipsai
       MYSQL_USER: zipsai_app

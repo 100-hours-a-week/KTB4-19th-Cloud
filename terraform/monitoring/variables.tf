@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "ap-northeast-2"
 }
 
+variable "ami_id" {
+  description = "Monitoring AMI pinned to the existing instance (verified 2026-10-15)."
+  type        = string
+  default     = "ami-0c713e716602facc2"
+}
+
 variable "instance_type" {
   description = "EC2 instance type running Prometheus, Loki, and Grafana."
   type        = string

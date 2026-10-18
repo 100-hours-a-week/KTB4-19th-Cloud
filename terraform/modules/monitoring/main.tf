@@ -2,26 +2,6 @@ data "aws_subnet" "selected" {
   id = var.subnet_id
 }
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
@@ -88,7 +68,7 @@ resource "aws_ebs_volume" "data" {
 }
 
 resource "aws_instance" "monitoring" {
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = var.ami_id
   instance_type               = var.instance_type
   subnet_id                   = var.subnet_id
   associate_public_ip_address = false
@@ -100,12 +80,14 @@ resource "aws_instance" "monitoring" {
     aws_region                      = var.aws_region
     data_volume_id                  = replace(aws_ebs_volume.data.id, "-", "")
     grafana_password_parameter_name = var.grafana_admin_password_parameter_name
-    compose_config_gzip_base64      = var.compose_config_gzip_base64
-    prometheus_config_gzip_base64   = var.prometheus_config_gzip_base64
-    loki_config_gzip_base64         = var.loki_config_gzip_base64
-    grafana_datasources_gzip_base64 = var.grafana_datasources_gzip_base64
   })
   user_data_replace_on_change = true
+
+  # 최초 bootstrap과 반복 설정 배포를 분리하고 기존 서버 교체를 방지한다.
+  # bootstrap 변경을 실제 반영하려면 별도 서버 재구축 계획을 검토한다.
+  lifecycle {
+    ignore_changes = [user_data]
+  }
 
   metadata_options {
     http_endpoint = "enabled"

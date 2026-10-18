@@ -64,9 +64,9 @@ variable "worker_command" {
 }
 
 variable "ai_api_url" {
-  description = "RunPod AI API endpoint supplied before the ECS API service starts."
+  description = "Optional override; defaults to the environment's private AI API EC2 DNS."
   type        = string
-  default     = "https://runpod-endpoint-to-be-configured.invalid"
+  default     = null
 }
 
 variable "uploads_bucket_name" {
@@ -79,17 +79,4 @@ variable "enable_custom_domains" {
   description = "Create ACM validation and Route 53 records only during the approved DNS cutover."
   type        = bool
   default     = false
-}
-
-variable "valkey_password" {
-  description = "Valkey password supplied only during plan/apply and never stored in State."
-  type        = string
-  sensitive   = true
-  ephemeral   = true
-}
-
-variable "valkey_password_version" {
-  description = "Increment when rotating the Production Valkey password."
-  type        = number
-  default     = 1
 }

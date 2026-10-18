@@ -15,20 +15,12 @@ locals {
   mysql_jdbc_url    = "jdbc:mysql://${module.mysql.private_ips.primary}:3306/zipsai?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false"
 
   backend_environment = {
-    SPRING_PROFILES_ACTIVE                    = "prod"
-    MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE = "health,metrics"
-    SERVER_TOMCAT_MBEANREGISTRY_ENABLED       = "true"
-    DB_URL                                    = local.mysql_jdbc_url
-    DB_USERNAME                               = "zipsai_app"
-    AUTH_SECURE_COOKIE                        = "true"
-    CORS_ALLOWED_ORIGINS                      = "https://zipsai.co.kr"
-    BACKEND_PORT                              = "8080"
-    AI_CLIENT                                 = "http"
-    AI_API_URL                                = var.ai_api_url
-    AWS_REGION                                = var.aws_region
-    S3_UPLOAD_BUCKET                          = var.uploads_bucket_name
-    SENTRY_ENVIRONMENT                        = "production"
-    TZ                                        = "Asia/Seoul"
+    DB_URL             = local.mysql_jdbc_url
+    DB_USERNAME        = "zipsai_app"
+    AI_API_URL         = var.ai_api_url != null ? var.ai_api_url : module.ai.api_url
+    AWS_REGION         = var.aws_region
+    S3_UPLOAD_BUCKET   = var.uploads_bucket_name
+    SENTRY_ENVIRONMENT = "production"
   }
 
   backend_secrets = {
@@ -63,9 +55,15 @@ module "ecs" {
 
   api_environment    = local.backend_environment
   worker_environment = local.backend_environment
-  api_secrets        = local.backend_secrets
-  worker_secrets     = local.backend_secrets
-  worker_command     = var.worker_command
+  api_secrets = merge(local.backend_secrets, {
+    REDIS_USERNAME = module.redis.username_parameter_arn
+    REDIS_PASSWORD = module.redis.password_parameter_arn
+  }, { for name, parameter in aws_ssm_parameter.api_runtime : name => parameter.arn })
+  worker_secrets = merge(local.backend_secrets, {
+    REDIS_USERNAME = module.redis.username_parameter_arn
+    REDIS_PASSWORD = module.redis.password_parameter_arn
+  }, { for name, parameter in aws_ssm_parameter.worker_runtime : name => parameter.arn })
+  worker_command = var.worker_command
 
   api_desired_count    = var.api_desired_count
   worker_desired_count = var.worker_desired_count

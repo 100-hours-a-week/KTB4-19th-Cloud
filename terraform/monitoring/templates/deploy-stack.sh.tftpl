@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+# 최초 부팅 완료 후 실행한다. 기존 서버에서는 즉시 반환한다.
+cloud-init status --wait >/dev/null
+mountpoint -q /data
+test -x /usr/local/bin/zipsai-monitoring-refresh-secret
+exec 9>/run/lock/zipsai-monitoring-deploy.lock
+flock -w 60 9
+
+root=/opt/zipsai-monitoring
+stage=$(mktemp -d /opt/zipsai-monitoring/.deploy.XXXXXX)
+trap 'rm -rf "$stage"' EXIT
+install -d -m 0700 "$stage/backup"
+printf '%s' '${compose_base64}' | base64 --decode > "$stage/docker-compose.yml"
+printf '%s' '${loki_base64}' | base64 --decode > "$stage/loki.yml"
+printf '%s' '${datasources_base64}' | base64 --decode > "$stage/grafana-datasources.yml"
+
+# 기존 scrape 설정은 전용 SSM Document에서 관리하므로 덮어쓰지 않는다.
+if [[ -f "$root/config/prometheus.yml" ]]; then
+  cp "$root/config/prometheus.yml" "$stage/prometheus.yml"
+else
+  printf '%s' '${prometheus_seed}' | base64 --decode > "$stage/prometheus.yml"
+fi
+chmod 0644 "$stage/"*.yml
+/usr/local/bin/zipsai-monitoring-refresh-secret
+docker compose -f "$stage/docker-compose.yml" config --quiet
+docker run --rm --entrypoint /bin/promtool \
+  -v "$stage/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+  '${prometheus_image}' check config /etc/prometheus/prometheus.yml
+
+files=(docker-compose.yml config/loki.yml config/grafana-datasources.yml config/prometheus.yml)
+sources=(docker-compose.yml loki.yml grafana-datasources.yml prometheus.yml)
+changed=()
+services=()
+for i in "$${!files[@]}"; do
+  file="$${files[$i]}"
+  if [[ -f "$root/$file" ]]; then
+    install -D -m 0644 "$root/$file" "$stage/backup/$file"
+  fi
+  if ! cmp -s "$stage/$${sources[$i]}" "$root/$file"; then
+    changed+=("$file")
+    case "$file" in
+      docker-compose.yml) services+=(prometheus loki grafana) ;;
+      config/loki.yml) services+=(loki) ;;
+      config/grafana-datasources.yml) services+=(grafana) ;;
+      config/prometheus.yml) services+=(prometheus) ;;
+    esac
+  fi
+done
+
+rollback() {
+  code=$?
+  trap - ERR
+  echo "Monitoring deployment failed; restoring previous configuration." >&2
+  for file in "$${changed[@]}"; do
+    if [[ -f "$stage/backup/$file" ]]; then
+      cat "$stage/backup/$file" > "$root/$file"
+    else
+      rm -f "$root/$file"
+    fi
+  done
+  if [[ -f "$root/docker-compose.yml" && -f "$root/config/prometheus.yml" ]]; then
+    docker compose -f "$root/docker-compose.yml" up -d --force-recreate || true
+  fi
+  exit "$code"
+}
+trap rollback ERR
+
+for i in "$${!files[@]}"; do
+  file="$${files[$i]}"
+  if ! cmp -s "$stage/$${sources[$i]}" "$root/$file"; then
+    # bind mount의 inode를 유지하도록 기존 파일에 내용을 쓴다.
+    cat "$stage/$${sources[$i]}" > "$root/$file"
+    chmod 0644 "$root/$file"
+  fi
+done
+
+if (( $${#services[@]} > 0 )); then
+  mapfile -t services < <(printf '%s\n' "$${services[@]}" | sort -u)
+  docker compose -f "$root/docker-compose.yml" up -d --no-deps --force-recreate "$${services[@]}"
+else
+  docker compose -f "$root/docker-compose.yml" up -d
+fi
+systemctl start zipsai-monitoring.service
+
+healthy=false
+for _ in $(seq 1 60); do
+  if curl --max-time 3 -fsS http://127.0.0.1:9090/-/ready >/dev/null 2>&1 \
+    && curl --max-time 3 -fsS http://127.0.0.1:3100/ready >/dev/null 2>&1 \
+    && curl --max-time 3 -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
+    healthy=true
+    break
+  fi
+  sleep 5
+done
+[[ "$healthy" == true ]]
+trap - ERR
+echo "Monitoring configuration deployment and readiness checks succeeded."

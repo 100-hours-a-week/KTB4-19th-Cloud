@@ -5,6 +5,9 @@ data "aws_security_group" "legacy_backend" {
 module "mysql" {
   source = "../../modules/mysql"
 
+  enable_exporter_configuration    = true
+  exporter_password_parameter_name = "/zipsai/prod/mysql-v2/exporter-password"
+
   name_prefix    = local.name_prefix
   common_tags    = local.common_tags
   vpc_id         = data.terraform_remote_state.network.outputs.vpc_id
