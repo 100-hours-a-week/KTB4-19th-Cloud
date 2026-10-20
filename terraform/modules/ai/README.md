@@ -54,3 +54,32 @@ Terraform apply만으로 애플리케이션을 시작하지 않는다. 호스트
 - 기존 Embedding은 Qdrant 접속값·Admin Key를 받지만 전달안의 Embedding은 임베딩 추론만 담당한다. 새 SG는 전달안대로 AI API→Qdrant만 허용한다. 기존 Embedding 이미지를 검증 없이 재사용하지 않는다.
 - Worker의 색인 202는 접수이지 완료가 아니다. 완료 조회·재시도·멱등성·SQS 메시지 삭제 계약은 Backend/AI팀 확인 전 완료로 표시하지 않는다.
 - Qdrant 2GiB·단일 호스트·동일 AZ, 실제 이미지 기동, EBS 복구, 모델 호출과 배포 Rollback은 아직 실행 검증 전이다.
+
+## AI-owned V2 배포의 정기 이미지 정리 — 2026-10-19
+
+**후속 변경:** 사용자 요청으로 아래 30분 Association은 같은 날 제거했다. 수동 감사/복구용 SSM 문서는 유지한다.
+현재 정책은 AI CD 전달본의 성공 후 직전 이미지 한 개 정리이며, 자동 배포 원격 반영은 AI팀 적용이 필요하다.
+아래 내용은 최초 정기 정리 적용 당시 기록이다.
+
+현재 AI 레포 CD는 `/opt/zipsai/ai-v2/current`와 서비스별 Compose project를 사용한다.
+위 기존 Cloud deploy.sh의 이미지 보존 규칙과 별개로 `image-cleanup.tf`가 관리하는 SSM 문서·Association을 추가했다.
+staging/prod의 AI API·Embedding 네 서버에서 UTC 매시 0/30분에 정리한다. 최초 apply 시 즉시 실행하지 않는다.
+정책 변경은 Terraform apply로 반영하며 서비스 배포·재시작은 수행하지 않는다.
+
+스크립트는 CD와 같은 deploy.lock을 사용한다. 배포 중·현재 정상 release 없음·서비스 비정상은 건너뛴다.
+모든 컨테이너(중지된 것 포함)의 참조 이미지와 현재 정상 release의 IMAGE_URI를 보호한다.
+정해진 서비스 ECR 저장소에만 속하는 미사용 이미지만 `docker image rm`으로 지운다.
+다른 저장소와 공유된 이미지, 소속을 알 수 없는 dangling 이미지, 볼륨·컨테이너·빌드 캐시는 삭제하지 않는다.
+강제 삭제 및 전역 docker prune은 사용하지 않으며 runtime.env 값은 출력하지 않는다.
+
+일반 실행은 30분 주기이므로 CD 성공 직후 정리 또는 짧은 간격의 연속 배포 공간을 보장하지 않는다.
+필요 시 운영자가 전용 SSM 문서를 먼저 Mode=audit로 확인하고 Mode=apply로 실행한다.
+문서 이름은 `zipsai-<환경>-<ai-api 또는 embedding>-image-cleanup`이다.
+이전 release의 로컬 이미지는 정리될 수 있다. 같은 digest의 과거 버전 재배포는 ECR에서 다시 pull해야 한다.
+ECR 보존 정책으로 이미지를 삭제하면 이 복구도 불가능하므로 ECR 수명주기는 별도 검토한다.
+소스 이미지 자체가 디스크보다 크거나 추출 임시 공간이 부족하면 이미지 축소 또는 EBS 확장이 필요하다.
+
+staging/prod 각각 전체 plan·apply 4 add·0 change·0 destroy를 확인했다.
+staging Embedding에서 audit 후 미사용 a371f4fb3c6c 이미지 한 개를 삭제했고,
+여유 공간 약 7.8GiB→17GiB, 사용률 73%→42%, 기존 컨테이너 healthy·/health 200을 확인했다.
+삭제한 이미지는 ECR에서 재다운로드할 수 있다. AI CD 코드는 수정하지 않았고 실패 배포 재실행도 하지 않았다.

@@ -58,26 +58,6 @@ output "api_alb_zone_id" {
   value       = module.ecs.alb_zone_id
 }
 
-output "document_jobs_queue_url" {
-  description = "Production document jobs queue URL."
-  value       = module.document_jobs.queue_url
-}
-
-output "document_jobs_queue_arn" {
-  description = "Production document jobs queue ARN."
-  value       = module.document_jobs.queue_arn
-}
-
-output "document_jobs_dlq_url" {
-  description = "Production document jobs DLQ URL."
-  value       = module.document_jobs.dlq_url
-}
-
-output "document_jobs_dlq_alarm_arn" {
-  description = "Production DLQ visible-message alarm ARN."
-  value       = module.document_jobs.dlq_alarm_arn
-}
-
 output "api_tasks_security_group_id" {
   description = "Security group reserved for Production ECS API tasks."
   value       = aws_security_group.api_tasks.id

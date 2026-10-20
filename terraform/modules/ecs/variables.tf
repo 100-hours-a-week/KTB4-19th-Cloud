@@ -155,11 +155,6 @@ variable "uploads_bucket_name" {
   type        = string
 }
 
-variable "document_jobs_queue_arn" {
-  description = "SQS queue ARN used for API publishing and Worker consumption."
-  type        = string
-}
-
 variable "certificate_arn" {
   description = "Optional ACM certificate ARN. Null keeps the validation listener on HTTP."
   type        = string

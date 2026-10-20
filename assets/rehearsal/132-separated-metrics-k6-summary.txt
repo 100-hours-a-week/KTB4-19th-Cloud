@@ -1,0 +1,132 @@
+     execution: local
+        script: /Users/max/Desktop/팀프로젝트/V2 구현/[M14-1] 데이터베이스 무중단 마이그레이션/load-test/migration-write-rehearsal.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 100 max VUs, 1h30m30s max duration (incl. graceful stop):
+              * migration_write_rehearsal: 25.00 iterations/s for 1h30m0s (maxVUs: 25-100, gracefulStop: 30s)
+
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.99' rate=100.00%
+
+    dropped_iterations
+    ✓ 'count==0' count=0
+
+    http_req_duration
+    ✓ 'p(95)<5000' p(95)=30.92ms
+
+      {operation:conversation_create}
+      ✓ 'p(95)<5000' p(95)=31.16ms
+
+      {operation:conversation_read}
+      ✓ 'p(95)<5000' p(95)=22.42ms
+
+      {workload:business}
+      ✓ 'p(95)<5000' p(95)=30.71ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+      {workload:business}
+      ✓ 'rate<0.01' rate=0.00%
+
+    migration_auth_rejected_total
+    ✓ 'count==0' count=0
+
+    migration_login_success_ratio
+    ✓ 'rate==1' rate=100.00%
+
+    migration_write_success_ratio
+    ✓ 'rate>0.99' rate=100.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 257012  47.574478/s
+    checks_succeeded...: 100.00% 257012 out of 257012
+    checks_failed......: 0.00%   0 out of 257012
+
+    ✓ loadtest.b01.r101@zipsai.com HTTP 200
+    ✓ loadtest.b01.r101@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r102@zipsai.com HTTP 200
+    ✓ loadtest.b01.r102@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r103@zipsai.com HTTP 200
+    ✓ loadtest.b01.r103@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r104@zipsai.com HTTP 200
+    ✓ loadtest.b01.r104@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r201@zipsai.com HTTP 200
+    ✓ loadtest.b01.r201@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r202@zipsai.com HTTP 200
+    ✓ loadtest.b01.r202@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r203@zipsai.com HTTP 200
+    ✓ loadtest.b01.r203@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r204@zipsai.com HTTP 200
+    ✓ loadtest.b01.r204@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r301@zipsai.com HTTP 200
+    ✓ loadtest.b01.r301@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r302@zipsai.com HTTP 200
+    ✓ loadtest.b01.r302@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r303@zipsai.com HTTP 200
+    ✓ loadtest.b01.r303@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r304@zipsai.com HTTP 200
+    ✓ loadtest.b01.r304@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r401@zipsai.com HTTP 200
+    ✓ loadtest.b01.r401@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r402@zipsai.com HTTP 200
+    ✓ loadtest.b01.r402@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r403@zipsai.com HTTP 200
+    ✓ loadtest.b01.r403@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r404@zipsai.com HTTP 200
+    ✓ loadtest.b01.r404@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r501@zipsai.com HTTP 200
+    ✓ loadtest.b01.r501@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r502@zipsai.com HTTP 200
+    ✓ loadtest.b01.r502@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r503@zipsai.com HTTP 200
+    ✓ loadtest.b01.r503@zipsai.com 유효한 액세스 토큰 발급
+    ✓ loadtest.b01.r504@zipsai.com HTTP 200
+    ✓ loadtest.b01.r504@zipsai.com 유효한 액세스 토큰 발급
+    ✓ 대화 생성 HTTP 2xx
+    ✓ 대화 ID 반환
+    ✓ 전환 중 조회 HTTP 200
+    ✓ 장시간 테스트 재로그인 HTTP 200
+    ✓ 장시간 테스트 재로그인 유효한 액세스 토큰 발급
+
+    CUSTOM
+    migration_auth_rejected_total...............: 0       0/s
+    migration_business_duration_ms..............: avg=22.721137  min=11.222  med=21.571   max=573.284  p(90)=27.101   p(95)=30.714  
+    migration_conversation_create_duration_ms...: avg=23.390063  min=15.457  med=21.85    max=573.284  p(90)=27.4661  p(95)=31.16905
+    migration_conversation_read_duration_ms.....: avg=16.700803  min=11.222  med=15.458   max=234.228  p(90)=19.577   p(95)=22.4244 
+    migration_login_success_ratio...............: 100.00% 256 out of 256
+    migration_read_checks_total.................: 13500   2.498932/s
+    migration_refresh_login_duration_ms.........: avg=139.817242 min=99.052  med=110.078  max=882.786  p(90)=196.41   p(95)=304.3   
+    migration_setup_login_duration_ms...........: avg=111.18055  min=101.945 med=111.6145 max=118.078  p(90)=116.7305 p(95)=117.6999
+    migration_token_refresh_success_total.......: 236     0.043685/s
+    migration_write_attempts_total..............: 121500  22.490386/s
+    migration_write_success_ratio...............: 100.00% 121500 out of 121500
+    migration_write_success_total...............: 121500  22.490386/s
+
+    HTTP
+    http_req_duration...........................: avg=22.93ms    min=11.22ms med=21.57ms  max=882.78ms p(90)=27.17ms  p(95)=30.92ms 
+      { expected_response:true }................: avg=22.93ms    min=11.22ms med=21.57ms  max=882.78ms p(90)=27.17ms  p(95)=30.92ms 
+      { operation:conversation_create }.........: avg=23.39ms    min=15.45ms med=21.85ms  max=573.28ms p(90)=27.46ms  p(95)=31.16ms 
+      { operation:conversation_read }...........: avg=16.7ms     min=11.22ms med=15.45ms  max=234.22ms p(90)=19.57ms  p(95)=22.42ms 
+      { workload:business }.....................: avg=22.72ms    min=11.22ms med=21.57ms  max=573.28ms p(90)=27.1ms   p(95)=30.71ms 
+    http_req_failed.............................: 0.00%   0 out of 135256
+      { workload:business }.....................: 0.00%   0 out of 135000
+    http_reqs...................................: 135256  25.036705/s
+
+    EXECUTION
+    dropped_iterations..........................: 0       0/s
+    iteration_duration..........................: avg=23.54ms    min=11.44ms med=22.15ms  max=918.07ms p(90)=27.8ms   p(95)=31.58ms 
+    iterations..................................: 135000  24.989318/s
+    vus.........................................: 0       min=0                max=7 
+    vus_max.....................................: 25      min=25               max=25
+
+    NETWORK
+    data_received...............................: 143 MB  27 kB/s
+    data_sent...................................: 63 MB   12 kB/s
+

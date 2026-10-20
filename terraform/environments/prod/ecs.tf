@@ -68,9 +68,12 @@ module "ecs" {
   api_desired_count    = var.api_desired_count
   worker_desired_count = var.worker_desired_count
 
-  uploads_bucket_name     = var.uploads_bucket_name
-  document_jobs_queue_arn = module.document_jobs.queue_arn
-  certificate_arn         = local.api_certificate_arn
-  health_check_path       = "/api/actuator/health/readiness"
-  liveness_check_path     = "/api/actuator/health/liveness"
+  uploads_bucket_name = var.uploads_bucket_name
+  certificate_arn     = local.api_certificate_arn
+  enable_https        = var.enable_custom_domains || var.enable_test_api_domain || var.enable_production_api_domain
+  health_check_path   = "/api/actuator/health/readiness"
+  liveness_check_path = "/api/actuator/health/liveness"
+
+  api_health_check_grace_period_seconds = 120
+  api_health_check_interval_seconds     = 10
 }

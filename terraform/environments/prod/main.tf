@@ -64,10 +64,3 @@ resource "aws_vpc_security_group_egress_rule" "worker_tasks_all_ipv4" {
     Name = "${local.name_prefix}-worker-tasks-all-egress"
   })
 }
-
-module "document_jobs" {
-  source = "../../modules/sqs"
-
-  name_prefix = local.name_prefix
-  common_tags = local.common_tags
-}

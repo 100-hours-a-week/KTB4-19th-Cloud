@@ -1,0 +1,165 @@
+{
+  "source_ssm_command": "386547cc-77bd-4d0b-951d-8513f664fd77",
+  "source_kind": "recorded log analysis",
+  "timezone": "Asia/Seoul",
+  "gaps": [
+    {
+      "start": "23:08:00.020",
+      "resume": "23:08:21.826",
+      "gap_s": 21.807,
+      "start_interval_s": null
+    },
+    {
+      "start": "23:08:35.864",
+      "resume": "23:09:00.815",
+      "gap_s": 24.951,
+      "start_interval_s": 35.844
+    },
+    {
+      "start": "23:09:15.282",
+      "resume": "23:09:38.618",
+      "gap_s": 23.336,
+      "start_interval_s": 39.418
+    },
+    {
+      "start": "23:09:52.715",
+      "resume": "23:10:19.365",
+      "gap_s": 26.649,
+      "start_interval_s": 37.433
+    },
+    {
+      "start": "23:10:33.928",
+      "resume": "23:10:57.857",
+      "gap_s": 23.929,
+      "start_interval_s": 41.212
+    },
+    {
+      "start": "23:11:12.291",
+      "resume": "23:11:39.764",
+      "gap_s": 27.473,
+      "start_interval_s": 38.363
+    },
+    {
+      "start": "23:11:54.079",
+      "resume": "23:12:17.231",
+      "gap_s": 23.152,
+      "start_interval_s": 41.788
+    },
+    {
+      "start": "23:12:31.356",
+      "resume": "23:12:57.336",
+      "gap_s": 25.98,
+      "start_interval_s": 37.277
+    },
+    {
+      "start": "23:13:11.359",
+      "resume": "23:13:35.178",
+      "gap_s": 23.819,
+      "start_interval_s": 40.002
+    },
+    {
+      "start": "23:13:50.058",
+      "resume": "23:14:12.846",
+      "gap_s": 22.788,
+      "start_interval_s": 38.699
+    },
+    {
+      "start": "23:14:26.951",
+      "resume": "23:14:51.787",
+      "gap_s": 24.835,
+      "start_interval_s": 36.893
+    },
+    {
+      "start": "23:15:05.776",
+      "resume": "23:15:32.720",
+      "gap_s": 26.944,
+      "start_interval_s": 38.825
+    },
+    {
+      "start": "23:15:47.071",
+      "resume": "23:16:14.856",
+      "gap_s": 27.785,
+      "start_interval_s": 41.295
+    },
+    {
+      "start": "23:16:29.121",
+      "resume": "23:16:54.269",
+      "gap_s": 25.148,
+      "start_interval_s": 42.05
+    },
+    {
+      "start": "23:17:08.374",
+      "resume": "23:17:36.193",
+      "gap_s": 27.82,
+      "start_interval_s": 39.253
+    },
+    {
+      "start": "23:17:50.551",
+      "resume": "23:18:15.749",
+      "gap_s": 25.199,
+      "start_interval_s": 42.177
+    },
+    {
+      "start": "23:18:29.918",
+      "resume": "23:18:57.399",
+      "gap_s": 27.48,
+      "start_interval_s": 39.368
+    },
+    {
+      "start": "23:19:12.202",
+      "resume": "23:19:37.409",
+      "gap_s": 25.208,
+      "start_interval_s": 42.283
+    }
+  ],
+  "summary": {
+    "count": 18,
+    "gap_min": 21.806562,
+    "gap_max": 27.819883,
+    "period_mean": 39.54011588235294,
+    "period_min": 35.844356,
+    "period_max": 42.283155
+  },
+  "rendered_log_excerpt": [
+    {
+      "time_kst": "23:13:10.263",
+      "message": "batch completed  count=100  lastEventId=1955069"
+    },
+    {
+      "time_kst": "23:13:10.287",
+      "message": "batch completed  count=17   lastEventId=1955103"
+    },
+    {
+      "time_kst": "23:13:11.333",
+      "message": "batch completed  count=100  lastEventId=1955303"
+    },
+    {
+      "time_kst": "23:13:11.359",
+      "message": "batch completed  count=20   lastEventId=1955343"
+    },
+    {
+      "time_kst": "23:13:14.383",
+      "message": "GET /api/actuator/prometheus  status=200  total_ms=15"
+    },
+    {
+      "time_kst": "23:13:29.376",
+      "message": "GET /api/actuator/prometheus  status=200  total_ms=8"
+    },
+    {
+      "time_kst": "23:13:35.178",
+      "message": "batch completed  count=100  lastEventId=1955543"
+    },
+    {
+      "time_kst": "23:13:35.252",
+      "message": "batch completed  count=100  lastEventId=1955743"
+    },
+    {
+      "time_kst": "23:13:38.140",
+      "message": "batch completed  count=100  lastEventId=1961303"
+    },
+    {
+      "time_kst": "23:13:38.181",
+      "message": "batch completed  count=33   lastEventId=1961369"
+    }
+  ]
+}

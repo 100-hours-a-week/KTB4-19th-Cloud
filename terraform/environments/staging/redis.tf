@@ -35,19 +35,26 @@ locals {
 }
 
 resource "aws_ssm_parameter" "api_runtime" {
-  for_each = merge(local.redis_client_defaults, { CONVERSATION_CLOSING_SCHEDULER_ENABLED = "true" })
-  name     = "/zipsai/${local.environment}/backend/api/runtime/${each.key}"
-  type     = "String"
-  value    = each.value
-  tags     = local.common_tags
+  for_each = merge(local.redis_client_defaults, {
+    CONVERSATION_CLOSING_SCHEDULER_ENABLED   = "true"
+    RULE_DOCUMENT_INDEXING_SCHEDULER_ENABLED = "false"
+  })
+  name  = "/zipsai/${local.environment}/backend/api/runtime/${each.key}"
+  type  = "String"
+  value = each.value
+  tags  = local.common_tags
   lifecycle { ignore_changes = [value] }
 }
 
 resource "aws_ssm_parameter" "worker_runtime" {
-  for_each = merge(local.redis_client_defaults, { CONVERSATION_CLOSING_SCHEDULER_ENABLED = "false" })
-  name     = "/zipsai/${local.environment}/backend/worker/runtime/${each.key}"
-  type     = "String"
-  value    = each.value
-  tags     = local.common_tags
+  for_each = merge(local.redis_client_defaults, {
+    CONVERSATION_CLOSING_SCHEDULER_ENABLED   = "false"
+    RULE_DOCUMENT_INDEXING_SCHEDULER_ENABLED = "true"
+    COMPLAINT_AI_FEEDBACK_SCHEDULER_ENABLED  = "false"
+  })
+  name  = "/zipsai/${local.environment}/backend/worker/runtime/${each.key}"
+  type  = "String"
+  value = each.value
+  tags  = local.common_tags
   lifecycle { ignore_changes = [value] }
 }

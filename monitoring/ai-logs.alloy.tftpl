@@ -1,0 +1,36 @@
+logging {
+  level = "warn"
+}
+
+discovery.docker "ai" {
+  host = "unix:///var/run/docker.sock"
+  refresh_interval = "15s"
+  filter {
+    name = "label"
+    values = ["com.docker.compose.project=zipsai-ai-v2-${service}", "com.docker.compose.service=${service}"]
+  }
+}
+
+discovery.relabel "ai" {
+  targets = discovery.docker.ai.targets
+  rule {
+    target_label = "service"
+    replacement = "${service}"
+  }
+  rule {
+    target_label = "env"
+    replacement = "${environment}"
+  }
+}
+
+loki.source.docker "ai" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.ai.output
+  forward_to = [loki.write.private.receiver]
+}
+
+loki.write "private" {
+  endpoint {
+    url = "http://loki.monitoring.zipsai.internal:3100/loki/api/v1/push"
+  }
+}

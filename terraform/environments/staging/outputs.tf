@@ -73,26 +73,6 @@ output "worker_tasks_security_group_id" {
   value       = aws_security_group.worker_tasks.id
 }
 
-output "document_jobs_queue_url" {
-  description = "Staging document jobs queue URL."
-  value       = module.document_jobs.queue_url
-}
-
-output "document_jobs_queue_arn" {
-  description = "Staging document jobs queue ARN."
-  value       = module.document_jobs.queue_arn
-}
-
-output "document_jobs_dlq_url" {
-  description = "Staging document jobs DLQ URL."
-  value       = module.document_jobs.dlq_url
-}
-
-output "document_jobs_dlq_alarm_arn" {
-  description = "Staging DLQ visible-message alarm ARN."
-  value       = module.document_jobs.dlq_alarm_arn
-}
-
 output "appconfig_runtime_configuration" {
   description = "Staging AppConfig identifiers used by the Agent endpoint."
   value = {

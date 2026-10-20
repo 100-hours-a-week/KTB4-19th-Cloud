@@ -268,12 +268,6 @@ data "aws_iam_policy_document" "api_task" {
   }
 
   statement {
-    sid       = "PublishDocumentJobs"
-    actions   = ["sqs:GetQueueAttributes", "sqs:SendMessage"]
-    resources = [var.document_jobs_queue_arn]
-  }
-
-  statement {
     sid = "ReadRuntimeConfiguration"
     actions = [
       "appconfig:StartConfigurationSession",
@@ -309,20 +303,9 @@ data "aws_iam_policy_document" "worker_task" {
   }
 
   statement {
-    sid       = "ReadUploadObjects"
-    actions   = ["s3:GetObject"]
+    sid       = "UploadObjectAccess"
+    actions   = ["s3:GetObject", "s3:PutObject"]
     resources = ["arn:aws:s3:::${var.uploads_bucket_name}/*"]
-  }
-
-  statement {
-    sid = "ConsumeDocumentJobs"
-    actions = [
-      "sqs:ChangeMessageVisibility",
-      "sqs:DeleteMessage",
-      "sqs:GetQueueAttributes",
-      "sqs:ReceiveMessage",
-    ]
-    resources = [var.document_jobs_queue_arn]
   }
 
   statement {
@@ -460,6 +443,20 @@ resource "aws_lb" "api" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
   idle_timeout       = 120
+
+  access_logs {
+    enabled = true
+    bucket  = aws_s3_bucket.alb_access_logs.id
+    prefix  = "alb"
+  }
+
+  depends_on = [
+    aws_s3_bucket_policy.alb_access_logs,
+    aws_s3_bucket_server_side_encryption_configuration.alb_access_logs,
+    aws_s3_bucket_public_access_block.alb_access_logs,
+    aws_s3_bucket_ownership_controls.alb_access_logs,
+    aws_s3_bucket_lifecycle_configuration.alb_access_logs,
+  ]
 
   tags = var.common_tags
 }

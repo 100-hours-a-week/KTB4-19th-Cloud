@@ -69,9 +69,9 @@ variable "api_desired_count" {
 }
 
 variable "worker_desired_count" {
-  description = "Staging Worker task count. Raise to one after Worker mode is implemented."
+  description = "Staging document outbox Worker baseline; QA daily scheduling remains disabled."
   type        = number
-  default     = 0
+  default     = 1
 }
 
 variable "worker_command" {

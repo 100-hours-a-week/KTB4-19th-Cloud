@@ -7,6 +7,20 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
+  - job_name: ai-application
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+    static_configs:
+      - targets: ["ai-api.staging.zipsai.internal:8000"]
+        labels:
+          environment: staging
+          service: ai-api
+      - targets: ["embedding.staging.zipsai.internal:8000"]
+        labels:
+          environment: staging
+          service: embedding
+
   - job_name: migration-application
     metrics_path: /api/actuator/prometheus
     static_configs:

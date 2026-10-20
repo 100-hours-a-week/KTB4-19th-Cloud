@@ -23,6 +23,11 @@ output "alb_arn" {
   value       = aws_lb.api.arn
 }
 
+output "https_listener_arn" {
+  description = "HTTPS listener ARN, when HTTPS is enabled."
+  value       = try(aws_lb_listener.https[0].arn, null)
+}
+
 output "alb_dns_name" {
   description = "API Application Load Balancer DNS name."
   value       = aws_lb.api.dns_name

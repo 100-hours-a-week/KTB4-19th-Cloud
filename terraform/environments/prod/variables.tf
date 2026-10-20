@@ -46,15 +46,15 @@ variable "backend_image_tag" {
 }
 
 variable "api_desired_count" {
-  description = "Production API task count. Raise to two after DB migration and configuration validation."
+  description = "Production API task count. Two tasks run for pre-cutover validation while V1 continues serving production traffic."
   type        = number
-  default     = 0
+  default     = 2
 }
 
 variable "worker_desired_count" {
-  description = "Production Worker task count. Raise to one after Worker mode is implemented."
+  description = "Production document outbox Worker baseline; QA daily scheduling remains disabled."
   type        = number
-  default     = 0
+  default     = 1
 }
 
 variable "worker_command" {

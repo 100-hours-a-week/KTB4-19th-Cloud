@@ -1,9 +1,16 @@
 locals {
   frontend_domain_name = "zipsai.co.kr"
   api_domain_name      = "api.zipsai.co.kr"
+  api_domain_enabled   = var.enable_custom_domains || var.enable_production_api_domain
 
-  frontend_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.frontend[0].certificate_arn : null
-  api_certificate_arn      = var.enable_custom_domains ? aws_acm_certificate_validation.api[0].certificate_arn : null
+  frontend_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.frontend[0].certificate_arn : (
+    var.enable_test_frontend_domain ? aws_acm_certificate_validation.test_frontend[0].certificate_arn : null
+  )
+  api_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.api[0].certificate_arn : (
+    var.enable_test_api_domain ? aws_acm_certificate_validation.test_api[0].certificate_arn : (
+      var.enable_production_api_domain ? aws_acm_certificate_validation.api[0].certificate_arn : null
+    )
+  )
 }
 
 resource "aws_acm_certificate" "frontend" {
@@ -45,7 +52,7 @@ resource "aws_acm_certificate_validation" "frontend" {
 }
 
 resource "aws_acm_certificate" "api" {
-  count = var.enable_custom_domains ? 1 : 0
+  count = local.api_domain_enabled ? 1 : 0
 
   domain_name       = local.api_domain_name
   validation_method = "DNS"
@@ -58,7 +65,7 @@ resource "aws_acm_certificate" "api" {
 }
 
 resource "aws_route53_record" "api_certificate_validation" {
-  for_each = var.enable_custom_domains ? {
+  for_each = local.api_domain_enabled ? {
     for option in aws_acm_certificate.api[0].domain_validation_options : option.domain_name => {
       name   = option.resource_record_name
       record = option.resource_record_value
@@ -74,7 +81,7 @@ resource "aws_route53_record" "api_certificate_validation" {
 }
 
 resource "aws_acm_certificate_validation" "api" {
-  count = var.enable_custom_domains ? 1 : 0
+  count = local.api_domain_enabled ? 1 : 0
 
   certificate_arn         = aws_acm_certificate.api[0].arn
   validation_record_fqdns = values(aws_route53_record.api_certificate_validation)[*].fqdn
@@ -83,11 +90,18 @@ resource "aws_acm_certificate_validation" "api" {
 module "frontend" {
   source = "../../modules/frontend"
 
-  name_prefix     = local.name_prefix
-  common_tags     = local.common_tags
-  bucket_name     = "zipsai-prod-frontend-origin"
-  domain_name     = var.enable_custom_domains ? local.frontend_domain_name : null
+  name_prefix = local.name_prefix
+  common_tags = local.common_tags
+  bucket_name = "zipsai-prod-frontend-origin"
+  domain_name = var.enable_custom_domains ? local.frontend_domain_name : (
+    var.enable_test_frontend_domain ? var.test_frontend_domain_name : null
+  )
   certificate_arn = local.frontend_certificate_arn
+  api_origin_domain_name = var.enable_custom_domains ? local.api_domain_name : (
+    var.enable_test_api_domain ? var.test_api_domain_name : null
+  )
+
+  depends_on = [aws_route53_record.test_api, aws_acm_certificate_validation.test_api]
 }
 
 resource "aws_route53_record" "frontend" {
@@ -119,7 +133,7 @@ resource "aws_route53_record" "frontend_ipv6" {
 }
 
 resource "aws_route53_record" "api" {
-  count = var.enable_custom_domains ? 1 : 0
+  count = local.api_domain_enabled ? 1 : 0
 
   zone_id = data.terraform_remote_state.shared.outputs.route53_zone_id
   name    = local.api_domain_name
