@@ -66,7 +66,9 @@ resource "aws_cloudfront_function" "spa" {
   runtime = "cloudfront-js-2.0"
   comment = "Rewrite SPA navigation only; never replace API errors with index.html"
   publish = true
-  code    = file("${path.module}/functions/spa.js")
+  code = var.canonical_domain_name == null ? file("${path.module}/functions/spa.js") : templatefile(
+    "${path.module}/functions/spa-canonical.js.tftpl", { canonical_domain_name = var.canonical_domain_name }
+  )
 }
 
 resource "aws_cloudfront_distribution" "frontend" {
@@ -75,7 +77,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   comment             = "${var.name_prefix} Frontend"
   default_root_object = "index.html"
   price_class         = var.price_class
-  aliases             = var.domain_name == null ? [] : [var.domain_name]
+  aliases             = var.domain_name == null ? [] : distinct(concat([var.domain_name], var.additional_domain_names))
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name

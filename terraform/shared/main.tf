@@ -52,8 +52,30 @@ resource "aws_route53_record" "apex_a" {
   zone_id = aws_route53_zone.public.zone_id
   name    = "zipsai.co.kr"
   type    = "A"
-  ttl     = 600
-  records = ["52.78.171.236"]
+  ttl     = var.production_frontend_alias_target == null ? 600 : null
+  records = var.production_frontend_alias_target == null ? ["52.78.171.236"] : null
+
+  dynamic "alias" {
+    for_each = var.production_frontend_alias_target == null ? [] : [var.production_frontend_alias_target]
+    content {
+      name                   = alias.value.domain_name
+      zone_id                = alias.value.zone_id
+      evaluate_target_health = false
+    }
+  }
+}
+
+resource "aws_route53_record" "apex_aaaa" {
+  count = var.production_frontend_alias_target == null ? 0 : 1
+
+  zone_id = aws_route53_zone.public.zone_id
+  name    = "zipsai.co.kr"
+  type    = "AAAA"
+  alias {
+    name                   = var.production_frontend_alias_target.domain_name
+    zone_id                = var.production_frontend_alias_target.zone_id
+    evaluate_target_health = false
+  }
 }
 
 resource "aws_route53_record" "www" {
@@ -127,7 +149,7 @@ resource "aws_s3_bucket_cors_configuration" "uploads" {
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["PUT"]
-    allowed_origins = ["https://zipsai.co.kr"]
+    allowed_origins = ["https://zipsai.co.kr", "https://prod-test.zipsai.co.kr"]
     expose_headers  = ["ETag"]
     max_age_seconds = 300
   }

@@ -3,9 +3,9 @@ locals {
   api_domain_name      = "api.zipsai.co.kr"
   api_domain_enabled   = var.enable_custom_domains || var.enable_production_api_domain
 
-  frontend_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.frontend[0].certificate_arn : (
+  frontend_certificate_arn = var.enable_production_frontend_domain ? aws_acm_certificate_validation.production_frontend[0].certificate_arn : (var.enable_custom_domains ? aws_acm_certificate_validation.frontend[0].certificate_arn : (
     var.enable_test_frontend_domain ? aws_acm_certificate_validation.test_frontend[0].certificate_arn : null
-  )
+  ))
   api_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.api[0].certificate_arn : (
     var.enable_test_api_domain ? aws_acm_certificate_validation.test_api[0].certificate_arn : (
       var.enable_production_api_domain ? aws_acm_certificate_validation.api[0].certificate_arn : null
@@ -93,15 +93,20 @@ module "frontend" {
   name_prefix = local.name_prefix
   common_tags = local.common_tags
   bucket_name = "zipsai-prod-frontend-origin"
-  domain_name = var.enable_custom_domains ? local.frontend_domain_name : (
+  domain_name = (var.enable_custom_domains || var.enable_production_frontend_domain) ? local.frontend_domain_name : (
     var.enable_test_frontend_domain ? var.test_frontend_domain_name : null
   )
-  certificate_arn = local.frontend_certificate_arn
-  api_origin_domain_name = var.enable_custom_domains ? local.api_domain_name : (
+  certificate_arn       = local.frontend_certificate_arn
+  canonical_domain_name = var.enable_production_frontend_domain ? local.frontend_domain_name : null
+  additional_domain_names = var.enable_production_frontend_domain ? concat(
+    ["www.zipsai.co.kr"],
+    var.enable_test_frontend_domain ? [var.test_frontend_domain_name] : []
+  ) : []
+  api_origin_domain_name = local.api_domain_enabled ? local.api_domain_name : (
     var.enable_test_api_domain ? var.test_api_domain_name : null
   )
 
-  depends_on = [aws_route53_record.test_api, aws_acm_certificate_validation.test_api]
+  depends_on = [aws_route53_record.api, aws_acm_certificate_validation.api]
 }
 
 resource "aws_route53_record" "frontend" {

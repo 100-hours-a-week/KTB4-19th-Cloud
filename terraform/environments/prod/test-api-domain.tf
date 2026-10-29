@@ -67,7 +67,7 @@ output "test_api_url" {
 
 # Public tests must not expose Actuator metrics. Private Task-IP collection is unaffected.
 resource "aws_lb_listener_rule" "hide_actuator_metrics" {
-  count = var.enable_test_api_domain ? 1 : 0
+  count = (local.api_domain_enabled || var.enable_test_api_domain) ? 1 : 0
 
   listener_arn = module.ecs.https_listener_arn
   priority     = 10

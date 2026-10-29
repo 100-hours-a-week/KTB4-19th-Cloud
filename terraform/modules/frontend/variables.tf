@@ -27,6 +27,19 @@ variable "certificate_arn" {
   nullable    = true
 }
 
+variable "additional_domain_names" {
+  description = "Additional aliases covered by certificate_arn; empty preserves single-domain users."
+  type        = list(string)
+  default     = []
+}
+
+variable "canonical_domain_name" {
+  description = "Optional canonical host; redirect its www alias while preserving path and query."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "price_class" {
   description = "CloudFront price class. PriceClass_200 includes Asia."
   type        = string
