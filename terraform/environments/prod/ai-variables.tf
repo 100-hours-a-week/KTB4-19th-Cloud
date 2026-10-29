@@ -8,7 +8,7 @@ variable "ai_instance_types" {
   default = {
     ai-api    = "t3a.large"
     embedding = "t3a.large"
-    qdrant    = "t3a.small"
+    qdrant    = "t3a.micro"
   }
 }
 variable "ai_root_volume_sizes" {
