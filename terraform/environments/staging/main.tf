@@ -68,6 +68,7 @@ resource "aws_vpc_security_group_egress_rule" "worker_tasks_all_ipv4" {
 module "mysql" {
   source = "../../modules/mysql"
 
+  enable_replica                   = false
   enable_exporter_configuration    = true
   exporter_password_parameter_name = "/zipsai/staging/mysql/exporter-password"
 

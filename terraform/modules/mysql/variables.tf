@@ -1,3 +1,9 @@
+variable "enable_replica" {
+  description = "Create the replica node and its data volume. Primary is always retained."
+  type        = bool
+  default     = true
+}
+
 variable "name_prefix" {
   description = "Prefix used for MySQL resource names."
   type        = string
