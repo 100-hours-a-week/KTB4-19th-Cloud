@@ -25,7 +25,7 @@ variable "mysql_data_volume_size_gib" {
 variable "enable_rehearsal_source" {
   description = "Temporarily connect the disposable V1-like source used for the Staging migration rehearsal."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "rehearsal_source_security_group_id" {

@@ -1,3 +1,2 @@
-# V1 monitoring only. Existing application/database containers remain untouched.
-enable_rehearsal_exporters  = true
-enable_production_exporters = true
+# V1 retired on 2026-10-23. Historical configuration remains in Git history.
+# No bootstrap commands are executed against V2 databases by retirement.

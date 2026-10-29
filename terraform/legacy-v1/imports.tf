@@ -1,13 +1,5 @@
 # 실제 Import는 검토한 plan의 apply 승인 이후에만 실행한다.
 import {
-  to = aws_instance.production
-  id = "i-06c0ca0d997f03792"
-}
-import {
-  to = aws_instance.rehearsal
-  id = "i-0e87dade1272d42cc"
-}
-import {
   to = aws_security_group.production
   id = "sg-0a4b86875aa8535b7"
 }
@@ -90,12 +82,4 @@ import {
 import {
   to = aws_iam_role_policy.rehearsal_s3
   id = "zipsai-load-test-ec2-role:zipsai-load-test-s3-access"
-}
-import {
-  to = aws_eip.production
-  id = "eipalloc-0ebf1098aefdb27ec"
-}
-import {
-  to = aws_eip_association.production
-  id = "eipassoc-082769bab6c98b344"
 }
