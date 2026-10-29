@@ -20,6 +20,14 @@ scrape_configs:
         labels:
           environment: staging
           service: embedding
+      - targets: ["ai-api.prod.zipsai.internal:8000"]
+        labels:
+          environment: prod
+          service: ai-api
+      - targets: ["embedding.prod.zipsai.internal:8000"]
+        labels:
+          environment: prod
+          service: embedding
 
   - job_name: migration-application
     metrics_path: /api/actuator/prometheus
