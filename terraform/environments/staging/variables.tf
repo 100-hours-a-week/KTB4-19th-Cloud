@@ -63,9 +63,9 @@ variable "backend_image_tag" {
 }
 
 variable "api_desired_count" {
-  description = "Staging API baseline after initial DB/login/Redis validation; power scripts may temporarily suspend it."
+  description = "Single-task Staging API baseline for cost control; power scripts may temporarily suspend it."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "worker_desired_count" {

@@ -1,5 +1,5 @@
 locals {
-  nodes = {
+  nodes = { for role, node in {
     primary = {
       availability_zone = var.primary_availability_zone
       subnet_id         = var.primary_subnet_id
@@ -10,7 +10,7 @@ locals {
       subnet_id         = var.replica_subnet_id
       server_id         = 102
     }
-  }
+  } : role => node if role == "primary" || var.enable_replica }
 }
 
 data "aws_iam_policy_document" "ec2_assume_role" {

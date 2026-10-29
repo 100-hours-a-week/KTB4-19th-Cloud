@@ -56,10 +56,6 @@ scrape_configs:
         labels:
           environment: staging
           role: primary
-      - targets: ["mysql-replica.staging.zipsai.internal:9100"]
-        labels:
-          environment: staging
-          role: replica
       - targets: ["mysql-primary.prod.zipsai.internal:9100"]
         labels:
           environment: prod
@@ -83,10 +79,6 @@ scrape_configs:
         labels:
           environment: staging
           role: primary
-      - targets: ["mysql-replica.staging.zipsai.internal:9104"]
-        labels:
-          environment: staging
-          role: replica
       - targets: ["mysql-primary.prod.zipsai.internal:9104"]
         labels:
           environment: prod
