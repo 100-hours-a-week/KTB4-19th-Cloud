@@ -36,11 +36,3 @@ module "monitoring" {
   grafana_admin_password_parameter_name = var.grafana_admin_password_parameter_name
 
 }
-
-resource "aws_route53_record" "legacy_mysql" {
-  zone_id = data.terraform_remote_state.network.outputs.private_dns_zone_id
-  name    = "mysql-v1.prod.zipsai.internal"
-  type    = "A"
-  ttl     = 30
-  records = [var.legacy_mysql_private_ip]
-}

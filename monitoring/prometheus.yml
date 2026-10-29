@@ -29,37 +29,8 @@ scrape_configs:
           environment: prod
           service: embedding
 
-  - job_name: migration-application
-    metrics_path: /api/actuator/prometheus
-    static_configs:
-      - targets: ["mysql-source.staging.zipsai.internal:8080"]
-        labels:
-          environment: staging
-          service: backend
-      - targets: ["mysql-source.staging.zipsai.internal:8081"]
-        labels:
-          environment: staging
-          service: migration-worker
-      - targets: ["mysql-v1.prod.zipsai.internal:8080"]
-        labels:
-          environment: prod
-          service: backend
-      # V2 복원 후 전용 Worker 기동 전에는 DOWN이 정상이다. 0 처리로 숨기지 않는다.
-      - targets: ["mysql-v1.prod.zipsai.internal:8081"]
-        labels:
-          environment: prod
-          service: migration-worker
-
   - job_name: mysql-host
     static_configs:
-      - targets: ["mysql-v1.prod.zipsai.internal:9100"]
-        labels:
-          environment: legacy-prod
-          role: primary
-      - targets: ["mysql-source.staging.zipsai.internal:9100"]
-        labels:
-          environment: staging
-          role: source
       - targets: ["mysql-primary.staging.zipsai.internal:9100"]
         labels:
           environment: staging
@@ -75,14 +46,6 @@ scrape_configs:
 
   - job_name: mysql
     static_configs:
-      - targets: ["mysql-v1.prod.zipsai.internal:9104"]
-        labels:
-          environment: legacy-prod
-          role: primary
-      - targets: ["mysql-source.staging.zipsai.internal:9104"]
-        labels:
-          environment: staging
-          role: source
       - targets: ["mysql-primary.staging.zipsai.internal:9104"]
         labels:
           environment: staging
