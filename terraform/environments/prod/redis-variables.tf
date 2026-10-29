@@ -6,7 +6,7 @@ variable "redis_ami_id" {
 
 variable "redis_instance_type" {
   type    = string
-  default = "t3a.small"
+  default = "t3a.micro"
 }
 
 variable "redis_root_volume_size_gib" {
