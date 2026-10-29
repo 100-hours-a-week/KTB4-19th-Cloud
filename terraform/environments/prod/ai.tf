@@ -2,6 +2,9 @@ locals {
   ai_secret_parameters = {
     ai-api = merge({
       LLM_API_KEY          = "/zipsai/${local.environment}/ai/llm-api-key"
+      OPENROUTER_API_KEY   = "/zipsai/${local.environment}/ai/openrouter-api-key"
+      SERVERLESS_API_KEY   = "/zipsai/${local.environment}/ai/serverless-api-key"
+      POD_API_KEY          = "/zipsai/${local.environment}/ai/pod-api-key"
       QDRANT_ADMIN_API_KEY = "/zipsai/${local.environment}/ai/qdrant-admin-api-key"
       LANGFUSE_SECRET_KEY  = "/zipsai/${local.environment}/ai/v2/langfuse/secret-key"
     }, var.ai_api_secret_parameter_names)
@@ -48,11 +51,18 @@ module "ai" {
   secret_parameter_names = local.ai_secret_parameters
   runtime_parameter_names = {
     ai-api = merge({
-      LANGFUSE_BASE_URL   = "/zipsai/${local.environment}/ai/v2/langfuse/base-url"
-      LANGFUSE_PUBLIC_KEY = "/zipsai/${local.environment}/ai/v2/langfuse/public-key"
-      LLM_MODEL           = "/zipsai/${local.environment}/ai/llm-model"
-      LLM_BASE_URL        = "/zipsai/${local.environment}/ai/llm-base-url"
-      VLM_MODEL           = "/zipsai/${local.environment}/ai/vlm-model"
+      LANGFUSE_BASE_URL    = "/zipsai/${local.environment}/ai/v2/langfuse/base-url"
+      LANGFUSE_PUBLIC_KEY  = "/zipsai/${local.environment}/ai/v2/langfuse/public-key"
+      LLM_MODEL            = "/zipsai/${local.environment}/ai/llm-model"
+      LLM_BASE_URL         = "/zipsai/${local.environment}/ai/llm-base-url"
+      VLM_MODEL            = "/zipsai/${local.environment}/ai/vlm-model"
+      OPENROUTER_BASE_URL  = "/zipsai/${local.environment}/ai/openrouter-base-url"
+      OPENROUTER_LLM_MODEL = "/zipsai/${local.environment}/ai/openrouter-llm-model"
+      OPENROUTER_VLM_MODEL = "/zipsai/${local.environment}/ai/openrouter-vlm-model"
+      SERVERLESS_BASE_URL  = "/zipsai/${local.environment}/ai/serverless-base-url"
+      SERVERLESS_MODEL     = "/zipsai/${local.environment}/ai/serverless-model"
+      POD_BASE_URL         = "/zipsai/${local.environment}/ai/pod-base-url"
+      POD_MODEL            = "/zipsai/${local.environment}/ai/pod-model"
     }, var.ai_api_runtime_parameter_names)
     embedding = merge({
       LANGFUSE_BASE_URL   = "/zipsai/${local.environment}/ai/v2/langfuse/base-url"
