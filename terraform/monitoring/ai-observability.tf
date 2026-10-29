@@ -1,12 +1,15 @@
 locals {
-  # Start with staging, where the new /metrics and JSON logs were runtime-verified.
+  # Keep CloudWatch and add Loki collection for both environments.
   ai_observability_targets = {
-    for service in ["ai-api", "embedding", "qdrant"] : "staging-${service}" => {
-      environment = "staging"
-      service     = service
+    for target in setproduct(["staging", "prod"], ["ai-api", "embedding", "qdrant"]) : "${target[0]}-${target[1]}" => {
+      environment = target[0]
+      service     = target[1]
     }
   }
-  ai_metrics_targets   = { for key, target in local.ai_observability_targets : key => target if target.service != "qdrant" }
+  ai_metrics_targets = {
+    for key, target in local.ai_observability_targets : key => target
+    if target.service != "qdrant"
+  }
   ai_collector_script  = base64encode(file("${path.module}/templates/deploy-ai-observability.py"))
   ai_collector_compose = base64encode(file("${path.root}/../../monitoring/ai-logs-compose.yml"))
 }
