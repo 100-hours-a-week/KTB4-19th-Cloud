@@ -5,12 +5,13 @@ variable "enable_production_api_domain" {
   default     = true
 }
 
-# Preserve the test certificate as the default during parallel validation.
-resource "aws_lb_listener_certificate" "production_api" {
-  count = var.enable_production_api_domain && !var.enable_custom_domains && var.enable_test_api_domain ? 1 : 0
-
-  listener_arn    = module.ecs.https_listener_arn
-  certificate_arn = aws_acm_certificate_validation.api[0].certificate_arn
+# The production certificate is now the listener DEFAULT, owned by module.ecs.
+# Drop only the former additional-SNI Terraform ownership, not the live cert.
+removed {
+  from = aws_lb_listener_certificate.production_api
+  lifecycle {
+    destroy = false
+  }
 }
 
 output "production_api_url" {
