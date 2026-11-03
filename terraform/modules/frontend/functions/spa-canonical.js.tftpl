@@ -2,6 +2,14 @@ function handler(event) {
     var request = event.request;
     var uri = request.uri;
     var canonical = ${jsonencode(canonical_domain_name)};
+    // Reject retired API paths before canonical redirects or SPA rewrites.
+    if (${jsonencode(reject_api_requests)} && (uri === '/api' || uri.indexOf('/api/') === 0)) {
+        return {
+            statusCode: 404,
+            statusDescription: 'Not Found',
+            headers: { 'cache-control': { value: 'no-store' } }
+        };
+    }
     if (request.headers.host && request.headers.host.value === 'www.' + canonical) {
         var parts = [];
         var query = request.querystring || {};

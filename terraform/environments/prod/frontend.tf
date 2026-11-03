@@ -90,6 +90,8 @@ resource "aws_acm_certificate_validation" "api" {
 module "frontend" {
   source = "../../modules/frontend"
 
+  enable_api_proxy = false
+
   name_prefix = local.name_prefix
   common_tags = local.common_tags
   bucket_name = "zipsai-prod-frontend-origin"
