@@ -51,12 +51,12 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 }
 
 data "aws_cloudfront_cache_policy" "api_disabled" {
-  count = var.api_origin_domain_name == null ? 0 : 1
+  count = var.api_origin_domain_name == null || !var.enable_api_proxy ? 0 : 1
   name  = "Managed-CachingDisabled"
 }
 
 data "aws_cloudfront_origin_request_policy" "api_forward" {
-  count = var.api_origin_domain_name == null ? 0 : 1
+  count = var.api_origin_domain_name == null || !var.enable_api_proxy ? 0 : 1
   name  = "Managed-AllViewerExceptHostHeader"
 }
 
@@ -67,7 +67,10 @@ resource "aws_cloudfront_function" "spa" {
   comment = "Rewrite SPA navigation only; never replace API errors with index.html"
   publish = true
   code = var.canonical_domain_name == null ? file("${path.module}/functions/spa.js") : templatefile(
-    "${path.module}/functions/spa-canonical.js.tftpl", { canonical_domain_name = var.canonical_domain_name }
+    "${path.module}/functions/spa-canonical.js.tftpl", {
+      canonical_domain_name = var.canonical_domain_name
+      reject_api_requests   = !var.enable_api_proxy
+    }
   )
 }
 
@@ -86,7 +89,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   dynamic "origin" {
-    for_each = var.api_origin_domain_name == null ? [] : [var.api_origin_domain_name]
+    for_each = var.api_origin_domain_name == null || !var.enable_api_proxy ? [] : [var.api_origin_domain_name]
     content {
       domain_name = origin.value
       origin_id   = "${var.name_prefix}-api-alb"
@@ -120,7 +123,7 @@ resource "aws_cloudfront_distribution" "frontend" {
 
   dynamic "ordered_cache_behavior" {
     # Exact /api is protected from the SPA fallback as well as /api/*.
-    for_each = var.api_origin_domain_name == null ? [] : ["/api", "/api/*"]
+    for_each = var.api_origin_domain_name == null || !var.enable_api_proxy ? [] : ["/api", "/api/*"]
     content {
       path_pattern             = ordered_cache_behavior.value
       allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]

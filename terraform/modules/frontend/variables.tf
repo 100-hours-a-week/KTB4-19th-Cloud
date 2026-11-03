@@ -52,3 +52,13 @@ variable "api_origin_domain_name" {
   default     = null
   nullable    = true
 }
+
+variable "enable_api_proxy" {
+  description = "Forward /api paths to the API origin; disabling requires a canonical host for explicit 404 responses."
+  type        = bool
+  default     = true
+  validation {
+    condition     = var.enable_api_proxy || var.canonical_domain_name != null
+    error_message = "Disabling the API proxy requires canonical_domain_name."
+  }
+}
