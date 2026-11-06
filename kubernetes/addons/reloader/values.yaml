@@ -1,0 +1,34 @@
+reloader:
+  fullnameOverride: reloader
+  reloader:
+    # The upstream chart also includes its own release namespace.
+    watchGlobally: false
+    namespaces: [staging, prod]
+    autoReloadAll: false
+    ignoreConfigMaps: true
+    ignoreJobs: true
+    ignoreCronJobs: true
+    reloadOnCreate: false
+    reloadOnDelete: false
+    reloadStrategy: annotations
+    logFormat: json
+    serviceAccount:
+      name: reloader
+    deployment:
+      replicas: 1
+      nodeSelector:
+        kubernetes.io/os: linux
+        environment: prod
+        role: general
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]

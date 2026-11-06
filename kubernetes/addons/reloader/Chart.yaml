@@ -1,0 +1,9 @@
+apiVersion: v2
+name: zipsai-reloader
+description: ZipsAI V3 opt-in Secret rollout controller
+type: application
+version: 0.1.0
+dependencies:
+  - name: reloader
+    version: 2.2.16
+    repository: https://stakater.github.io/stakater-charts

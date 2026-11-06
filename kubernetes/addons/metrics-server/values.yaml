@@ -1,0 +1,23 @@
+metrics-server:
+  fullnameOverride: metrics-server
+  replicas: 1
+  # Avoid the kubelet port; this is the metrics-server HTTPS serving port.
+  containerPort: 10251
+  hostNetwork:
+    enabled: false
+  nodeSelector:
+    kubernetes.io/os: linux
+    environment: prod
+    role: general
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      cpu: 500m
+      memory: 400Mi
+  defaultArgs:
+    - --cert-dir=/tmp
+    - --kubelet-preferred-address-types=InternalIP
+    - --kubelet-use-node-status-port
+    - --metric-resolution=15s
