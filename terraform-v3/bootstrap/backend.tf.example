@@ -1,0 +1,11 @@
+# The initial bootstrap uses local state. After the bucket exists, enable
+# this backend and migrate the bootstrap state with terraform init -migrate-state.
+terraform {
+  backend "s3" {
+    bucket       = "zipsai-v3-terraform-state"
+    key          = "bootstrap/terraform.tfstate"
+    region       = "ap-northeast-2"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
