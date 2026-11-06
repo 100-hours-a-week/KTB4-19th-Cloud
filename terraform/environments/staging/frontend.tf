@@ -2,8 +2,8 @@ locals {
   frontend_domain_name = "v2.zipsai.co.kr"
   api_domain_name      = "api-v2.zipsai.co.kr"
 
-  frontend_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.frontend[0].certificate_arn : null
-  api_certificate_arn      = var.enable_custom_domains ? aws_acm_certificate_validation.api[0].certificate_arn : null
+  frontend_certificate_arn = var.enable_custom_domains ? data.terraform_remote_state.shared.outputs.cloudfront_certificate_arn : null
+  api_certificate_arn      = var.enable_custom_domains ? data.terraform_remote_state.shared.outputs.api_alb_certificate_arn : null
 }
 
 resource "aws_acm_certificate" "frontend" {
@@ -91,7 +91,7 @@ module "frontend" {
   api_origin_domain_name = var.enable_custom_domains ? local.api_domain_name : null
 
   # The HTTPS origin DNS must exist before CloudFront attempts API requests.
-  depends_on = [aws_route53_record.api, aws_acm_certificate_validation.api]
+  depends_on = [aws_route53_record.api]
 }
 
 resource "aws_route53_record" "frontend" {
