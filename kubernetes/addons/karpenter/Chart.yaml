@@ -1,0 +1,13 @@
+apiVersion: v2
+name: zipsai-karpenter
+description: ZipsAI V3 Karpenter controller and node pools
+type: application
+version: 0.1.0
+dependencies:
+  - name: karpenter
+    version: 1.14.1
+    repository: oci://public.ecr.aws/karpenter
+  - name: nvidia-device-plugin
+    version: 0.17.4
+    repository: https://nvidia.github.io/k8s-device-plugin
+    condition: gpu.enabled

@@ -105,8 +105,7 @@ resource "aws_iam_role_policy" "external_secrets" {
   })
 }
 
-# The EKS add-on owns the EBS CSI association. Karpenter gets its controller
-# permissions alongside the interruption queue and NodePool configuration.
+# The EKS add-on owns the EBS CSI association.
 resource "aws_eks_pod_identity_association" "addon" {
   for_each = { for key, identity in local.addon_identities : key => identity if key != "ebs_csi" }
 

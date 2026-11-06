@@ -1,0 +1,32 @@
+{{- if ne (len .Values.cluster.subnetIds) 2 }}
+{{- fail "Provide the two Private App subnet IDs from V3 EKS" }}
+{{- end }}
+{{- $amiVersion := required "Pin an EKS-compatible AL2023 AMI release (vYYYYMMDD)" .Values.cluster.amiVersion }}
+{{- if not (regexMatch "^v[0-9]{8}$" $amiVersion) }}
+{{- fail "cluster.amiVersion must be vYYYYMMDD" }}
+{{- end }}
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: v3-al2023
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instanceProfile: zipsai-v3-eks-karpenter
+  amiSelectorTerms:
+    - alias: {{ printf "al2023@%s" $amiVersion | quote }}
+  subnetSelectorTerms:
+    {{- range .Values.cluster.subnetIds }}
+    - id: {{ . | quote }}
+    {{- end }}
+  securityGroupSelectorTerms:
+    - id: {{ required "Provide the V3 EKS cluster security group ID" .Values.cluster.securityGroupId | quote }}
+  metadataOptions:
+    httpTokens: required
+    httpPutResponseHopLimit: 1
+  kubelet:
+    maxPods: 16
+  tags:
+    Project: zipsai
+    Stack: v3
+    ManagedBy: karpenter

@@ -1,0 +1,33 @@
+{{- if .Values.karpenter.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+    targetRevision: main
+    path: kubernetes/addons/karpenter
+    helm:
+      valuesObject:
+        cluster:
+          amiVersion: {{ required "Pin karpenter.amiVersion before enabling Karpenter" .Values.karpenter.amiVersion | quote }}
+          securityGroupId: {{ required "Run the V3 bootstrap to configure the cluster security group" .Values.karpenter.cluster.securityGroupId | quote }}
+          subnetIds:
+            {{- toYaml .Values.karpenter.cluster.subnetIds | nindent 12 }}
+        gpu:
+          enabled: {{ .Values.karpenter.gpuEnabled }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: karpenter
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+{{- end }}

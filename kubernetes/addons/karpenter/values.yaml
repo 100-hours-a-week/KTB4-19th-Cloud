@@ -1,0 +1,36 @@
+karpenter:
+  serviceAccount:
+    name: karpenter
+  nodeSelector:
+    kubernetes.io/os: linux
+    environment: prod
+    role: general
+  settings:
+    clusterName: zipsai-v3-eks
+    interruptionQueue: zipsai-v3-eks-karpenter
+
+cluster:
+  subnetIds: []
+  securityGroupId: ""
+  amiVersion: ""
+
+gpu:
+  enabled: false
+
+nvidia-device-plugin:
+  nodeSelector:
+    environment: prod
+    role: gpu
+  tolerations:
+    - key: role
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+
+generalPools:
+  prod:
+    cpu: "16"
+    memory: 64Gi
+  staging:
+    cpu: "8"
+    memory: 32Gi
