@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: v3-bootstrap
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  namespaceResourceWhitelist:
+    - group: argoproj.io
+      kind: AppProject
+    - group: argoproj.io
+      kind: Application

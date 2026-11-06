@@ -1,0 +1,22 @@
+cilium:
+  enabled: false
+  apiHost: ""
+  subnetIds: []
+
+# Enable each entry after its team repository contains the chart and both
+# the corresponding branch and environment values file.
+applications:
+  staging:
+    resident-api: false
+    manager-api: false
+    chat-consumer: false
+    complaint-feedback-batch: false
+    ai-api: false
+    embedding-service: false
+  prod:
+    resident-api: false
+    manager-api: false
+    chat-consumer: false
+    complaint-feedback-batch: false
+    ai-api: false
+    embedding-service: false

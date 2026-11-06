@@ -1,0 +1,5 @@
+apiVersion: v2
+name: zipsai-argocd-applications
+description: ZipsAI V3 GitOps applications and projects
+type: application
+version: 0.1.0

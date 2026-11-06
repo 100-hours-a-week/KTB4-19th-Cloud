@@ -1,0 +1,34 @@
+{{- if .Values.cilium.enabled }}
+{{- if ne (len .Values.cilium.subnetIds) 2 }}
+{{- fail "Cilium requires two Private App subnet IDs from the V3 EKS cluster" }}
+{{- end }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+    targetRevision: main
+    path: kubernetes/addons/cilium
+    helm:
+      valuesObject:
+        cilium:
+          k8sServiceHost: {{ required "Cilium requires the private EKS API hostname" .Values.cilium.apiHost | quote }}
+          k8sServicePort: 443
+          eni:
+            subnetIDsFilter:
+              {{- toYaml .Values.cilium.subnetIds | nindent 14 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+{{- end }}

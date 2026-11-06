@@ -1,0 +1,9 @@
+apiVersion: v2
+name: zipsai-argocd
+description: ZipsAI V3 Argo CD configuration
+type: application
+version: 0.1.0
+dependencies:
+  - name: argo-cd
+    version: 10.14.0
+    repository: https://argoproj.github.io/argo-helm
