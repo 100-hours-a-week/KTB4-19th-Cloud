@@ -62,14 +62,9 @@ kube-prometheus-stack:
         url: http://loki:3100
         access: proxy
     sidecar:
-      dashboards:
-        resources:
-          requests: {cpu: 10m, memory: 32Mi}
-          limits: {cpu: 50m, memory: 64Mi}
-      datasources:
-        resources:
-          requests: {cpu: 10m, memory: 32Mi}
-          limits: {cpu: 50m, memory: 64Mi}
+      resources:
+        requests: {cpu: 10m, memory: 32Mi}
+        limits: {cpu: 50m, memory: 64Mi}
   kube-state-metrics:
     nodeSelector: {role: observability}
     tolerations: [{key: role, operator: Equal, value: observability, effect: NoSchedule}]
