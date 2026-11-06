@@ -1,0 +1,9 @@
+apiVersion: v2
+name: zipsai-aws-load-balancer-controller
+description: ZipsAI V3 aws-load-balancer-controller settings
+type: application
+version: 0.1.0
+dependencies:
+  - name: aws-load-balancer-controller
+    version: 3.6.2
+    repository: https://aws.github.io/eks-charts

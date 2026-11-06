@@ -1,0 +1,9 @@
+aws-load-balancer-controller:
+  clusterName: zipsai-v3-eks
+  region: ap-northeast-2
+  vpcId: ""
+  serviceAccount:
+    name: aws-load-balancer-controller
+  enableShield: false
+  enableWaf: false
+  enableWafv2: false

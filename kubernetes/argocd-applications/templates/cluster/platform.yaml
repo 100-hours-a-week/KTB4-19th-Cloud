@@ -1,0 +1,30 @@
+{{- if .Values.platform.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+    targetRevision: main
+    path: kubernetes/platform
+    helm:
+      valuesObject:
+        networkPolicy:
+          {{- toYaml .Values.platform.networkPolicy | nindent 10 }}
+        environments:
+          {{- toYaml .Values.platform.environments | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+{{- end }}
