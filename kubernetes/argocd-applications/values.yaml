@@ -49,7 +49,7 @@ secretStores:
 karpenter:
   # Enable after the controller IAM, queue and base node groups exist.
   enabled: false
-  amiVersion: ""
+  amiVersion: "v20261031"
   gpuEnabled: false
   cluster:
     subnetIds: []
