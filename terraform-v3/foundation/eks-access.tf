@@ -1,10 +1,13 @@
-variable "eks_operator_role_arn" {
-  description = "Existing Platform IAM role ARN used by human operators for SSM and EKS."
-  type        = string
+variable "eks_operator_principal_arns" {
+  description = "Existing IAM users or roles in this account allowed to assume the V3 EKS operator role."
+  type        = set(string)
 
   validation {
-    condition     = can(regex("^arn:aws:iam::[0-9]{12}:role/.+$", var.eks_operator_role_arn))
-    error_message = "Provide an IAM role ARN, not an STS session ARN."
+    condition = length(var.eks_operator_principal_arns) > 0 && alltrue([
+      for arn in var.eks_operator_principal_arns :
+      can(regex("^arn:aws:iam::[0-9]{12}:(user|role)/[A-Za-z0-9+=,.@_/-]+$", arn))
+    ])
+    error_message = "Provide at least one exact IAM user or role ARN."
   }
 }
 
@@ -97,9 +100,65 @@ resource "aws_instance" "eks_management" {
   depends_on = [aws_iam_role_policy_attachment.eks_management_ssm]
 }
 
+data "aws_iam_policy_document" "eks_operator_trust" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "AWS"
+      identifiers = sort(tolist(var.eks_operator_principal_arns))
+    }
+  }
+}
+
+resource "aws_iam_role" "eks_operator" {
+  name               = "${local.cluster_name}-operator"
+  assume_role_policy = data.aws_iam_policy_document.eks_operator_trust.json
+  tags               = local.v3_tags
+
+  lifecycle {
+    precondition {
+      condition = alltrue([
+        for arn in var.eks_operator_principal_arns :
+        startswith(arn, "arn:aws:iam::${data.aws_caller_identity.addon_account.account_id}:")
+      ])
+      error_message = "All operator principals must belong to the V3 AWS account."
+    }
+  }
+}
+
+data "aws_iam_policy_document" "eks_operator_access" {
+  statement {
+    sid       = "DescribeV3Cluster"
+    actions   = ["eks:DescribeCluster"]
+    resources = [aws_eks_cluster.v3.arn]
+  }
+
+  statement {
+    sid     = "ConnectToManagementHost"
+    actions = ["ssm:StartSession"]
+    resources = [
+      aws_instance.eks_management.arn,
+      "arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.addon_account.account_id}:document/SSM-SessionManagerRunShell",
+    ]
+  }
+
+  statement {
+    sid       = "UseOwnSession"
+    actions   = ["ssmmessages:OpenDataChannel", "ssm:ResumeSession", "ssm:TerminateSession"]
+    resources = ["arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.addon_account.account_id}:session/&{aws:userid}-*"]
+  }
+}
+
+resource "aws_iam_role_policy" "eks_operator_access" {
+  name   = "v3-eks-operator-access"
+  role   = aws_iam_role.eks_operator.name
+  policy = data.aws_iam_policy_document.eks_operator_access.json
+}
+
 resource "aws_eks_access_entry" "platform_operator" {
   cluster_name      = aws_eks_cluster.v3.name
-  principal_arn     = var.eks_operator_role_arn
+  principal_arn     = aws_iam_role.eks_operator.arn
   kubernetes_groups = ["platform-operators"]
   type              = "STANDARD"
   tags              = local.v3_tags
@@ -120,4 +179,9 @@ resource "aws_eks_access_policy_association" "bootstrap_admin" {
 output "eks_management_instance_id" {
   description = "Private EC2 instance ID to target with SSM Session Manager."
   value       = aws_instance.eks_management.id
+}
+
+output "eks_operator_role_arn" {
+  description = "IAM role to assume for V3 EKS operations."
+  value       = aws_iam_role.eks_operator.arn
 }
