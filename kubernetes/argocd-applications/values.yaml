@@ -36,6 +36,12 @@ albController:
 externalSecrets:
   enabled: false
 
+metricsServer:
+  enabled: false
+
+reloader:
+  enabled: false
+
 secretStores:
   enabled: false
   accountId: ""

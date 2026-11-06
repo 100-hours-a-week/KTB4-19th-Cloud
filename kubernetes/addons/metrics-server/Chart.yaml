@@ -1,0 +1,9 @@
+apiVersion: v2
+name: zipsai-metrics-server
+description: ZipsAI V3 resource metrics API
+type: application
+version: 0.1.0
+dependencies:
+  - name: metrics-server
+    version: 3.13.0
+    repository: https://kubernetes-sigs.github.io/metrics-server/

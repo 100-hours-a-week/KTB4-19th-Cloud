@@ -9,7 +9,7 @@ spec:
   sourceRepos:
     - https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
   destinations:
-    {{- range list "argocd" "kube-system" "karpenter" "external-secrets" "observability" "staging" "prod" }}
+    {{- range list "argocd" "kube-system" "karpenter" "external-secrets" "reloader" "observability" "staging" "prod" }}
     - server: https://kubernetes.default.svc
       namespace: {{ . }}
     {{- end }}

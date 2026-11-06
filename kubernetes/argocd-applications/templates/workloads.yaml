@@ -35,8 +35,16 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ $environment }}
-  {{- if eq $environment "staging" }}
+  # Preserve only Reloader's runtime annotation, not other Deployment changes.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from
   syncPolicy:
+    syncOptions:
+      - RespectIgnoreDifferences=true
+  {{- if eq $environment "staging" }}
     automated:
       prune: true
       selfHeal: true
