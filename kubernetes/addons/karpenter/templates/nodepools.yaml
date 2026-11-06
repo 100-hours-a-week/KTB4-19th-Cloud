@@ -1,0 +1,64 @@
+{{- $pools := dict }}
+{{- range $environment, $limits := .Values.generalPools }}
+{{- $_ := set $pools (printf "%s-general" $environment) (dict "environment" $environment "role" "general" "limits" $limits) }}
+{{- end }}
+{{- if .Values.gpu.enabled }}
+{{- $_ := set $pools "prod-gpu" (dict "environment" "prod" "role" "gpu" "limits" (dict "cpu" "4" "memory" "16Gi" "nvidia.com/gpu" "1")) }}
+{{- end }}
+{{- range $name, $pool := $pools }}
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: {{ $name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  template:
+    metadata:
+      labels:
+        environment: {{ $pool.environment }}
+        role: {{ $pool.role }}
+        {{- if eq $pool.role "gpu" }}
+        nvidia.com/gpu.present: "true"
+        {{- end }}
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: v3-al2023
+      startupTaints:
+        - key: node.cilium.io/agent-not-ready
+          value: "true"
+          effect: NoExecute
+      {{- if eq $pool.role "gpu" }}
+      taints:
+        - key: role
+          value: gpu
+          effect: NoSchedule
+      {{- end }}
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: [amd64]
+        - key: kubernetes.io/os
+          operator: In
+          values: [linux]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: [on-demand]
+        {{- if eq $pool.role "gpu" }}
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: [g4dn.xlarge]
+        {{- else }}
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: [m, c]
+        {{- end }}
+  limits:
+    {{- toYaml $pool.limits | nindent 4 }}
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+{{- end }}

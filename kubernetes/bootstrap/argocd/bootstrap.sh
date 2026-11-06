@@ -12,6 +12,7 @@ chart_dir="$bootstrap_dir/../argocd"
 cluster="$(aws eks describe-cluster --region ap-northeast-2 --name zipsai-v3-eks --query cluster --output json)"
 endpoint="$(jq -er '.endpoint | select(startswith("https://"))' <<< "$cluster")"
 subnets="$(jq -ec '.resourcesVpcConfig.subnetIds | select(length == 2)' <<< "$cluster")"
+security_group="$(jq -er '.resourcesVpcConfig.clusterSecurityGroupId | select(startswith("sg-"))' <<< "$cluster")"
 context_endpoint="$(kubectl config view -o json | jq -er --arg context "$context" '
   (.contexts[] | select(.name == $context).context.cluster) as $cluster
   | .clusters[] | select(.name == $cluster).cluster.server
@@ -39,13 +40,17 @@ kubectl --context "$context" wait --for=condition=Established --timeout=2m \
 kubectl --context "$context" -n argocd rollout status deployment/argocd-server --timeout=5m
 kubectl --context "$context" apply -f "$bootstrap_dir/root-project.yaml"
 
-# Match the cluster-specific overrides used during the initial Cilium installation.
+# Match the initial Cilium values and share the cluster network IDs with Karpenter.
 kubectl --context "$context" create --dry-run=client -f "$bootstrap_dir/root-application.yaml" -o json |
-  jq --arg host "${endpoint#https://}" --argjson subnets "$subnets" '
+  jq --arg host "${endpoint#https://}" --argjson subnets "$subnets" --arg sg "$security_group" '
     .spec.source.helm.valuesObject.cilium = {
       enabled: true,
       apiHost: $host,
       subnetIds: $subnets
+    }
+    | .spec.source.helm.valuesObject.karpenter.cluster = {
+      subnetIds: $subnets,
+      securityGroupId: $sg
     }
   ' |
   kubectl --context "$context" apply -f -
