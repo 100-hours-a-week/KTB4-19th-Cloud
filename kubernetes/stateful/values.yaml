@@ -1,0 +1,13 @@
+environment: staging
+rabbitmq:
+  image: rabbitmq:4.3.6
+  replicas: 1
+  storage: 20Gi
+redis:
+  image: redis:8.2.10
+  exporterImage: oliver006/redis_exporter:v1.97.0
+  maxmemory: 192mb
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+

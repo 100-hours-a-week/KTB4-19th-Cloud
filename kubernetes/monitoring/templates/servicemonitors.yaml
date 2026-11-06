@@ -1,0 +1,25 @@
+{{- range $workload, $config := dict
+  "resident-api" (dict "path" "/api/actuator/prometheus" "port" "http")
+  "manager-api" (dict "path" "/api/actuator/prometheus" "port" "http")
+  "ai-api" (dict "path" "/metrics" "port" "http")
+  "embedding-service" (dict "path" "/metrics" "port" "http")
+  "rabbitmq" (dict "path" "/metrics" "port" "metrics")
+  "redis" (dict "path" "/metrics" "port" "metrics")
+}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $workload }}
+  labels: {monitoring.zipsai.io/scrape: "true"}
+spec:
+  namespaceSelector:
+    matchNames: [staging, prod]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $workload }}
+  endpoints:
+    - port: {{ $config.port }}
+      path: {{ $config.path }}
+      interval: 30s
+{{- end }}

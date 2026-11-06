@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - {name: redis, port: 6379}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/name: redis
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}
+    - {name: metrics, port: 9121, targetPort: metrics}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: cache
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      terminationGracePeriodSeconds: 30
+      nodeSelector:
+        environment: {{ .Values.environment }}
+        role: general
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          command: [sh, -ec]
+          args:
+            - |
+              hash=$(printf '%s' "$REDISCLI_AUTH" | sha256sum | cut -d' ' -f1)
+              printf 'user default off\nuser zipsai_app on #%s ~* &* +@all\n' "$hash" > /tmp/users.acl
+              exec redis-server --aclfile /tmp/users.acl --appendonly no --save "" --maxmemory {{ .Values.redis.maxmemory }} --maxmemory-policy noeviction
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: redis-secret, key: password}
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          ports:
+            - {name: redis, containerPort: 6379}
+          startupProbe:
+            exec:
+              command: [sh, -ec, 'test "$(redis-cli --user zipsai_app ping)" = PONG']
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          readinessProbe:
+            exec:
+              command: [sh, -ec, 'test "$(redis-cli --user zipsai_app ping)" = PONG']
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: [sh, -ec, 'test "$(redis-cli --user zipsai_app ping)" = PONG']
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          volumeMounts:
+            - {name: data, mountPath: /data}
+        - name: redis-exporter
+          image: {{ .Values.redis.exporterImage }}
+          args: ["--redis.addr=redis://127.0.0.1:6379", "--redis.user=zipsai_app"]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: redis-secret, key: password}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 25m, memory: 32Mi}
+          ports:
+            - {name: metrics, containerPort: 9121}
+      volumes:
+        - name: data
+          emptyDir: {}

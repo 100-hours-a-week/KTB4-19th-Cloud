@@ -3,6 +3,16 @@ cilium:
   apiHost: ""
   subnetIds: []
 
+stateful:
+  storageEnabled: false
+  stagingEnabled: false
+  prodEnabled: false
+
+monitoring:
+  enabled: false
+  accountId: ""
+  lokiBucket: ""
+
 platform:
   enabled: false
   networkPolicy:

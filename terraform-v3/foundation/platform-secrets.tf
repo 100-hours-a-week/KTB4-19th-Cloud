@@ -1,6 +1,6 @@
 # Each store assumes an environment reader to enforce Parameter Store path isolation.
 resource "aws_iam_role" "parameter_reader" {
-  for_each = toset(["staging", "prod"])
+  for_each = toset(["staging", "prod", "observability"])
   name     = "v3-${each.key}-parameter-reader"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
