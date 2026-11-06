@@ -45,4 +45,4 @@ AWS_PROFILE=terraform terraform plan -out=/private/tmp/zipsai-v1-reviewed.tfplan
 
 개발 단계는 Document 1개·Association 1개 생성, 운영 단계는 Association 1개 생성만 적용했다. 기존 계정·파일·컨테이너가 있으면 검증 후 보존하며 운영에는 전용 모니터링 계정·파일과 별도 Compose 프로젝트의 Exporter 두 개를 추가했다. Prometheus의 운영 9100·9104 두 대상 UP·mysql_up=1, 기존 서비스 ID·기동 시각과 MySQL 전역 설정 유지, 후속 전체 plan No changes를 확인했다.
 
-실행·실패·복구 경계는 `runbooks/monitoring/v1-exporters.md`를 따른다. 활성화 변수를 끄거나 Association을 제거해도 서버 계정·파일·Exporter가 자동 삭제되지는 않는다.
+활성화 변수를 끄거나 Association을 제거해도 서버 계정·파일·Exporter가 자동 삭제되지는 않는다.
