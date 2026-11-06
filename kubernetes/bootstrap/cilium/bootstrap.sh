@@ -8,7 +8,10 @@ fi
 
 action=$1
 context=$2
-chart_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../addons/cilium" && pwd)"
+bootstrap_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+chart_dir="$bootstrap_dir/../addons/cilium"
+source "$bootstrap_dir/common.sh"
+require_bootstrap_tools
 cluster="$(aws eks describe-cluster --region ap-northeast-2 --name zipsai-v3-eks --query cluster --output json)"
 endpoint="$(jq -er '.endpoint | select(startswith("https://"))' <<< "$cluster")"
 context_endpoint="$(kubectl config view -o json | jq -er --arg context "$context" '
@@ -44,7 +47,7 @@ if [[ "$selector" != "true" ]]; then
 fi
 
 subnet_ids="$(jq -er '.resourcesVpcConfig.subnetIds | select(length == 2) | join(",")' <<< "$cluster")"
-helm dependency build "$chart_dir"
+build_bootstrap_chart "$chart_dir" zipsai-v3-cilium https://helm.cilium.io
 # Apply manifests without waiting for Pods. Node groups and the Pod Identity Agent
 # can be enabled after this command on the first deployment.
 helm upgrade --install cilium "$chart_dir" --kube-context "$context" --namespace kube-system \

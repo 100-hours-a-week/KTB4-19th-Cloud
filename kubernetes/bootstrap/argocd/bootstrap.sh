@@ -9,6 +9,8 @@ fi
 context=$1
 bootstrap_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 chart_dir="$bootstrap_dir/../argocd"
+source "$bootstrap_dir/common.sh"
+require_bootstrap_tools
 cluster="$(aws eks describe-cluster --region ap-northeast-2 --name zipsai-v3-eks --query cluster --output json)"
 endpoint="$(jq -er '.endpoint | select(startswith("https://"))' <<< "$cluster")"
 subnets="$(jq -ec '.resourcesVpcConfig.subnetIds | select(length == 2)' <<< "$cluster")"
@@ -30,7 +32,7 @@ kubectl --context "$context" -n kube-system rollout status deployment/cilium-ope
 # Once installed, the argocd Application manages upgrades from Git.
 server_deployment="$(kubectl --context "$context" -n argocd get deployment argocd-server --ignore-not-found -o name)"
 if [[ -z "$server_deployment" ]]; then
-  helm dependency build "$chart_dir"
+  build_bootstrap_chart "$chart_dir" zipsai-v3-argo https://argoproj.github.io/argo-helm
   helm upgrade --install argocd "$chart_dir" --kube-context "$context" \
     --namespace argocd --create-namespace --wait --timeout 10m
 fi

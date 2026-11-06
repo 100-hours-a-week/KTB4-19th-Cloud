@@ -79,6 +79,7 @@ resource "aws_instance" "eks_management" {
   vpc_security_group_ids      = [aws_security_group.eks_management.id]
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.eks_management.name
+  user_data                   = file("${path.module}/scripts/eks-management-user-data.sh")
 
   metadata_options {
     http_tokens = "required"
