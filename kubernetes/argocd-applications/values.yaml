@@ -3,6 +3,33 @@ cilium:
   apiHost: ""
   subnetIds: []
 
+platform:
+  enabled: false
+  networkPolicy:
+    enabled: false
+  environments:
+    staging:
+      mysqlCidrs: []
+      qdrantCidrs: []
+    prod:
+      mysqlCidrs: []
+      qdrantCidrs: []
+  ingress:
+    enabled: false
+    certificateArn: ""
+    publicSubnetIds: []
+
+albController:
+  enabled: false
+  vpcId: ""
+
+externalSecrets:
+  enabled: false
+
+secretStores:
+  enabled: false
+  accountId: ""
+
 karpenter:
   # Enable after the controller IAM, queue and base node groups exist.
   enabled: false

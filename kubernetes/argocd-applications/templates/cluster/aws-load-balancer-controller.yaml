@@ -1,0 +1,28 @@
+{{- if .Values.albController.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+    targetRevision: main
+    path: kubernetes/addons/aws-load-balancer-controller
+    helm:
+      valuesObject:
+        aws-load-balancer-controller:
+          vpcId: {{ required "Set albController.vpcId" .Values.albController.vpcId | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+{{- end }}

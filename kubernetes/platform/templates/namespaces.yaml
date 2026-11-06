@@ -1,0 +1,9 @@
+{{- if .Values.namespaces.enabled }}
+{{- range $environment, $_ := .Values.environments }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $environment }}
+{{- end }}
+{{- end }}

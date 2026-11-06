@@ -93,14 +93,14 @@ resource "aws_iam_role_policy" "alb_controller" {
 }
 
 resource "aws_iam_role_policy" "external_secrets" {
-  name = "v3-parameter-store-read"
+  name = "v3-parameter-reader-assume"
   role = aws_iam_role.addon["eso"].name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
-      Resource = "arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.addon_account.account_id}:parameter/zipsai/v3/*"
+      Action   = ["sts:AssumeRole", "sts:TagSession"]
+      Resource = [for role in aws_iam_role.parameter_reader : role.arn]
     }]
   })
 }

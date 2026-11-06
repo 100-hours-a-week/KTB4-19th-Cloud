@@ -1,0 +1,49 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: application-deny-imds
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: k8s:io.kubernetes.pod.namespace
+        operator: In
+        values: [staging, prod]
+  egressDeny:
+    - toCIDR:
+        - 169.254.169.254/32
+{{- range $environment, $config := .Values.environments }}
+{{- range $workload := list "resident-api" "manager-api" "ai-api" }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ $workload }}-allow-external-domains
+  namespace: {{ $environment }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $workload }}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: ANY}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: {{ printf "%s.s3.%s.amazonaws.com" $config.uploadsBucket $.Values.region }}
+        - matchName: {{ printf "s3.%s.amazonaws.com" $.Values.region }}
+        {{- if eq $workload "ai-api" }}
+        - matchName: api.runpod.ai
+        {{- end }}
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+{{- end }}
+{{- end }}
+{{- end }}

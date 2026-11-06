@@ -1,0 +1,29 @@
+{{- if .Values.platform.ingress.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: public-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+    targetRevision: main
+    path: kubernetes/platform
+    helm:
+      valuesObject:
+        namespaces:
+          enabled: false
+        ingress:
+          {{- toYaml .Values.platform.ingress | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+{{- end }}

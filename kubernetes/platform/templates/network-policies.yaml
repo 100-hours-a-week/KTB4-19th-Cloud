@@ -1,0 +1,182 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- if ne (len .Values.networkPolicy.albSubnetCidrs) 2 }}
+{{- fail "Provide both ALB public subnet CIDRs before enabling network policies" }}
+{{- end }}
+{{- range $environment, $config := .Values.environments }}
+{{- if or (empty $config.mysqlCidrs) (empty $config.qdrantCidrs) }}
+{{- fail (printf "Set %s mysqlCidrs and qdrantCidrs before enabling network policies" $environment) }}
+{{- end }}
+{{- range concat $config.mysqlCidrs $config.qdrantCidrs }}
+{{- if not (regexMatch "^10[.]0[.][0-9]{1,3}[.][0-9]{1,3}/32$" .) }}
+{{- fail "Database destinations must be private 10.0.x.x/32 CIDRs" }}
+{{- end }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: {{ $environment }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cluster-dns
+  namespace: {{ $environment }}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+{{- range $edge := $.Values.connections }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $edge.from }}-to-{{ $edge.to }}-{{ $edge.port }}
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $edge.from }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $edge.to }}
+      ports:
+        - {protocol: TCP, port: {{ $edge.port }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $edge.to }}-from-{{ $edge.from }}-{{ $edge.port }}
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $edge.to }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $edge.from }}
+      ports:
+        - {protocol: TCP, port: {{ $edge.port }}}
+{{- end }}
+{{- range $workload := list "resident-api" "manager-api" "chat-consumer" "complaint-feedback-batch" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $workload }}-allow-mysql
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $workload }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        {{- range $config.mysqlCidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - {protocol: TCP, port: 3306}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-api-allow-qdrant
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ai-api
+  policyTypes: [Egress]
+  egress:
+    - to:
+        {{- range $config.qdrantCidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - {protocol: TCP, port: 6333}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow-alb
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [resident-api, manager-api]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        {{- range $.Values.networkPolicy.albSubnetCidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - {protocol: TCP, port: 8080}
+{{- range $workload, $port := dict "resident-api" 8080 "manager-api" 8080 "ai-api" 8000 "embedding-service" 8000 "rabbitmq" 15692 "redis" 9121 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $workload }}-allow-observability-scrape
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $workload }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - {protocol: TCP, port: {{ $port }}}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aws-clients-allow-pod-identity
+  namespace: {{ $environment }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [resident-api, manager-api, ai-api]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 169.254.170.23/32
+      ports:
+        - {protocol: TCP, port: 80}
+{{- end }}
+{{- end }}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: zipsai-platform
+description: V3 namespaces, network boundaries, ingress and secret stores
+type: application
+version: 0.1.0

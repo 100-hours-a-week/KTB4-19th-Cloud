@@ -1,0 +1,40 @@
+region: ap-northeast-2
+namespaces:
+  enabled: true
+networkPolicy:
+  enabled: false
+  albSubnetCidrs: [10.0.1.0/24, 10.0.2.0/24]
+secretStores:
+  enabled: false
+  accountId: ""
+ingress:
+  enabled: false
+  certificateArn: ""
+  publicSubnetIds: []
+  managerPath: /api/v1/managers
+  apiPath: /api
+  healthCheckPath: /readiness
+environments:
+  staging:
+    host: v3-staging-api.zipsai.co.kr
+    uploadsBucket: zipsai-staging-uploads
+    mysqlCidrs: []
+    qdrantCidrs: []
+  prod:
+    host: v3-prod-api.zipsai.co.kr
+    uploadsBucket: zipsai-prod-uploads
+    mysqlCidrs: []
+    qdrantCidrs: []
+# Emit both caller Egress and receiver Ingress in the same namespace.
+connections:
+  - {from: resident-api, to: rabbitmq, port: 5672}
+  - {from: resident-api, to: redis, port: 6379}
+  - {from: manager-api, to: redis, port: 6379}
+  - {from: manager-api, to: ai-api, port: 8000}
+  - {from: chat-consumer, to: rabbitmq, port: 5672}
+  - {from: chat-consumer, to: redis, port: 6379}
+  - {from: chat-consumer, to: ai-api, port: 8000}
+  - {from: complaint-feedback-batch, to: ai-api, port: 8000}
+  - {from: ai-api, to: embedding-service, port: 8000}
+  - {from: rabbitmq, to: rabbitmq, port: 4369}
+  - {from: rabbitmq, to: rabbitmq, port: 25672}

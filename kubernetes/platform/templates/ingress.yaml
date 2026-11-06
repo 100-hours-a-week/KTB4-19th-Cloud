@@ -1,0 +1,48 @@
+{{- if .Values.ingress.enabled }}
+{{- $cert := required "Set the existing Seoul wildcard ACM ARN" .Values.ingress.certificateArn }}
+{{- if ne (len .Values.ingress.publicSubnetIds) 2 }}
+{{- fail "Provide the two existing public subnet IDs for ALB" }}
+{{- end }}
+{{- range $environment, $config := .Values.environments }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-ingress
+  namespace: {{ $environment }}
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: {{ join "," $.Values.ingress.publicSubnetIds | quote }}
+    alb.ingress.kubernetes.io/certificate-arn: {{ $cert | quote }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: {{ $.Values.ingress.healthCheckPath | quote }}
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "10"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+spec:
+  ingressClassName: alb
+  rules:
+    - host: {{ $config.host }}
+      http:
+        paths:
+          - path: {{ $.Values.ingress.managerPath }}
+            pathType: Prefix
+            backend:
+              service:
+                name: manager-api
+                port:
+                  name: http
+          - path: {{ $.Values.ingress.apiPath }}
+            pathType: Prefix
+            backend:
+              service:
+                name: resident-api
+                port:
+                  name: http
+{{- end }}
+{{- end }}
