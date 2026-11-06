@@ -1,0 +1,3 @@
+environment: staging
+rabbitmq:
+  replicas: 1

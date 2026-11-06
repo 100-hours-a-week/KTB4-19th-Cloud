@@ -1,0 +1,26 @@
+{{- if .Values.stateful.stagingEnabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stateful-staging
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+    targetRevision: main
+    path: kubernetes/stateful
+    helm:
+      valueFiles: [values-staging.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+{{- end }}
