@@ -1,0 +1,32 @@
+cilium:
+  eni:
+    enabled: true
+    awsEnablePrefixDelegation: true
+    # Restrict allocation to the two Private App subnets at bootstrap.
+    subnetIDsFilter: []
+
+  ipam:
+    mode: eni
+  routingMode: native
+  kubeProxyReplacement: false
+  cluster:
+    name: zipsai-v3-eks
+  agentNotReadyTaintKey: node.cilium.io/agent-not-ready
+
+  serviceAccounts:
+    operator:
+      name: cilium-operator
+  operator:
+    hostNetwork: true
+    extraEnv:
+      - name: AWS_REGION
+        value: ap-northeast-2
+
+  hubble:
+    enabled: true
+    relay:
+      enabled: true
+    ui:
+      enabled: true
+      ingress:
+        enabled: false
