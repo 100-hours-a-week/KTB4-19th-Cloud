@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  sourceRepos:
+    - https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
+  destinations:
+    {{- range list "argocd" "kube-system" "karpenter" "external-secrets" "observability" "staging" "prod" }}
+    - server: https://kubernetes.default.svc
+      namespace: {{ . }}
+    {{- end }}
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    - group: apiregistration.k8s.io
+      kind: APIService
+    - group: scheduling.k8s.io
+      kind: PriorityClass
+    - group: networking.k8s.io
+      kind: IngressClass
+    - group: storage.k8s.io
+      kind: StorageClass
+    - group: cilium.io
+      kind: CiliumClusterwideNetworkPolicy
+    - group: karpenter.sh
+      kind: NodePool
+    - group: karpenter.k8s.aws
+      kind: EC2NodeClass
+    - group: external-secrets.io
+      kind: ClusterSecretStore
+{{- range $environment := list "staging" "prod" }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps-{{ $environment }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  sourceRepos:
+    - https://github.com/100-hours-a-week/KTB4-19th-BE.git
+    - https://github.com/100-hours-a-week/KTB4-19th-AI.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: {{ $environment }}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: batch
+      kind: CronJob
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: external-secrets.io
+      kind: ExternalSecret
+{{- end }}

@@ -1,0 +1,46 @@
+{{- $backend := "https://github.com/100-hours-a-week/KTB4-19th-BE.git" }}
+{{- $ai := "https://github.com/100-hours-a-week/KTB4-19th-AI.git" }}
+{{- $workloads := dict
+  "resident-api" (dict "repo" $backend "chart" "backend-workload")
+  "manager-api" (dict "repo" $backend "chart" "backend-workload")
+  "chat-consumer" (dict "repo" $backend "chart" "backend-workload")
+  "complaint-feedback-batch" (dict "repo" $backend "chart" "complaint-feedback-batch")
+  "ai-api" (dict "repo" $ai "chart" "ai-api")
+  "embedding-service" (dict "repo" $ai "chart" "embedding-service")
+}}
+{{- range $environment, $branch := dict "staging" "staging" "prod" "main" }}
+{{- range $name, $enabled := index $.Values.applications $environment }}
+{{- if $enabled }}
+{{- $workload := required (printf "unknown %s workload %s" $environment $name) (index $workloads $name) }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $environment }}-{{ $name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: apps-{{ $environment }}
+  sources:
+    - repoURL: {{ $workload.repo }}
+      targetRevision: {{ $branch }}
+      path: deploy/helm/charts/{{ $workload.chart }}
+      helm:
+        valueFiles:
+          - $values/deploy/helm/values/{{ $environment }}/{{ $name }}.yaml
+    - repoURL: {{ $workload.repo }}
+      targetRevision: {{ $branch }}
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $environment }}
+  {{- if eq $environment "staging" }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,29 @@
+argo-cd:
+  crds:
+    install: true
+    keep: true
+
+  server:
+    service:
+      type: ClusterIP
+    ingress:
+      enabled: false
+
+  configs:
+    cm:
+      application.resourceTrackingMethod: annotation
+      # Let the root sync wait for automatically deployed children in earlier waves.
+      resource.customizations.health.argoproj.io_Application: |
+        if obj.spec.syncPolicy == nil or obj.spec.syncPolicy.automated == nil then
+          return { status = "Healthy", message = "Manual sync" }
+        end
+        if obj.status ~= nil and obj.status.health ~= nil then
+          local health = obj.status.health
+          if health.status ~= "Healthy" then
+            return health
+          end
+          if obj.status.sync ~= nil and obj.status.sync.status == "Synced" then
+            return health
+          end
+        end
+        return { status = "Progressing", message = "Waiting for child sync" }
