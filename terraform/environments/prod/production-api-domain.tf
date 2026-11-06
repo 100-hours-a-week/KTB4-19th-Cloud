@@ -5,8 +5,10 @@ variable "enable_production_api_domain" {
   default     = true
 }
 
-# The production certificate is now the listener DEFAULT, owned by module.ecs.
-# Drop only the former additional-SNI Terraform ownership, not the live cert.
+# Historical state migration: the former additional-SNI binding was forgotten
+# when module.ecs took ownership of the listener default certificate.
+# Issue #22 switched that default to the shared wildcard and detached the
+# leftover unmanaged SNI binding. Keep this block for older state upgrades.
 removed {
   from = aws_lb_listener_certificate.production_api
   lifecycle {

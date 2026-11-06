@@ -3,14 +3,8 @@ locals {
   api_domain_name      = "api.zipsai.co.kr"
   api_domain_enabled   = var.enable_custom_domains || var.enable_production_api_domain
 
-  frontend_certificate_arn = var.enable_production_frontend_domain ? aws_acm_certificate_validation.production_frontend[0].certificate_arn : (var.enable_custom_domains ? aws_acm_certificate_validation.frontend[0].certificate_arn : (
-    var.enable_test_frontend_domain ? aws_acm_certificate_validation.test_frontend[0].certificate_arn : null
-  ))
-  api_certificate_arn = var.enable_custom_domains ? aws_acm_certificate_validation.api[0].certificate_arn : (
-    var.enable_test_api_domain ? aws_acm_certificate_validation.test_api[0].certificate_arn : (
-      var.enable_production_api_domain ? aws_acm_certificate_validation.api[0].certificate_arn : null
-    )
-  )
+  frontend_certificate_arn = (var.enable_production_frontend_domain || var.enable_custom_domains || var.enable_test_frontend_domain) ? data.terraform_remote_state.shared.outputs.cloudfront_certificate_arn : null
+  api_certificate_arn      = (local.api_domain_enabled || var.enable_test_api_domain) ? data.terraform_remote_state.shared.outputs.api_alb_certificate_arn : null
 }
 
 resource "aws_acm_certificate" "frontend" {
@@ -108,7 +102,7 @@ module "frontend" {
     var.enable_test_api_domain ? var.test_api_domain_name : null
   )
 
-  depends_on = [aws_route53_record.api, aws_acm_certificate_validation.api]
+  depends_on = [aws_route53_record.api]
 }
 
 resource "aws_route53_record" "frontend" {
