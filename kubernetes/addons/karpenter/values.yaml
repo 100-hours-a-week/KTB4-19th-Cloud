@@ -28,9 +28,10 @@ nvidia-device-plugin:
       effect: NoSchedule
 
 generalPools:
+  # Keep 4 vCPU of Standard On-Demand headroom while V2 and V3 coexist.
   prod:
-    cpu: "16"
+    cpu: "12"
     memory: 64Gi
   staging:
-    cpu: "8"
+    cpu: "4"
     memory: 32Gi
