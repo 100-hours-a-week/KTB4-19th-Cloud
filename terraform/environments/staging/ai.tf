@@ -6,6 +6,7 @@ locals {
       SERVERLESS_API_KEY   = "/zipsai/${local.environment}/ai/serverless-api-key"
       POD_API_KEY          = "/zipsai/${local.environment}/ai/pod-api-key"
       RUNPOD_API_KEY       = "/zipsai/${local.environment}/ai/runpod-api-key"
+      TAVILY_API_KEY       = "/zipsai/${local.environment}/ai/tavily-api-key"
       QDRANT_ADMIN_API_KEY = "/zipsai/${local.environment}/ai/qdrant-admin-api-key"
       LANGFUSE_SECRET_KEY  = "/zipsai/${local.environment}/ai/langfuse/secret-key"
     }, var.ai_api_secret_parameter_names)
