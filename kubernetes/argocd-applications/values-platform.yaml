@@ -3,6 +3,18 @@ platform:
   enabled: true
   networkPolicy:
     enabled: true
+  environments:
+    staging:
+      mysqlCidrs:
+        - 10.0.20.200/32
+      qdrantCidrs:
+        - 10.0.10.83/32
+    prod:
+      mysqlCidrs:
+        - 10.0.20.196/32
+        - 10.0.21.153/32
+      qdrantCidrs:
+        - 10.0.10.82/32
 
 albController:
   enabled: true
