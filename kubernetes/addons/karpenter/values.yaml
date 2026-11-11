@@ -3,7 +3,6 @@ karpenter:
     name: karpenter
   nodeSelector:
     kubernetes.io/os: linux
-    environment: prod
     role: general
   settings:
     clusterName: zipsai-v3-eks

@@ -47,6 +47,7 @@ secretStores:
   accountId: ""
 
 karpenter:
+  controllerReplicas: 2
   # Enable after the controller IAM, queue and base node groups exist.
   enabled: false
   amiVersion: "v20261031"

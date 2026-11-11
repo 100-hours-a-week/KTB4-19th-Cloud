@@ -18,7 +18,6 @@ reloader:
       replicas: 1
       nodeSelector:
         kubernetes.io/os: linux
-        environment: prod
         role: general
       resources:
         requests:

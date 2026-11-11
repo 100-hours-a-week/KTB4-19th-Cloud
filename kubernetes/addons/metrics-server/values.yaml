@@ -7,7 +7,6 @@ metrics-server:
     enabled: false
   nodeSelector:
     kubernetes.io/os: linux
-    environment: prod
     role: general
   resources:
     requests:

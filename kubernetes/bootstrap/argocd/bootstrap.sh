@@ -14,6 +14,8 @@ require_bootstrap_tools
 cluster="$(aws eks describe-cluster --region ap-northeast-2 --name zipsai-v3-eks --query cluster --output json)"
 endpoint="$(jq -er '.endpoint | select(startswith("https://"))' <<< "$cluster")"
 subnets="$(jq -ec '.resourcesVpcConfig.subnetIds | select(length == 2)' <<< "$cluster")"
+vpc_id="$(jq -er '.resourcesVpcConfig.vpcId | select(startswith("vpc-"))' <<< "$cluster")"
+account_id="$(aws sts get-caller-identity --query Account --output text)"
 security_group="$(jq -er '.resourcesVpcConfig.clusterSecurityGroupId | select(startswith("sg-"))' <<< "$cluster")"
 context_endpoint="$(kubectl config view -o json | jq -er --arg context "$context" '
   (.contexts[] | select(.name == $context).context.cluster) as $cluster
@@ -44,12 +46,14 @@ kubectl --context "$context" apply -f "$bootstrap_dir/root-project.yaml"
 
 # Match the initial Cilium values and share the cluster network IDs with Karpenter.
 kubectl --context "$context" create --dry-run=client -f "$bootstrap_dir/root-application.yaml" -o json |
-  jq --arg host "${endpoint#https://}" --argjson subnets "$subnets" --arg sg "$security_group" '
+  jq --arg host "${endpoint#https://}" --argjson subnets "$subnets" --arg sg "$security_group" --arg vpc "$vpc_id" --arg account "$account_id" '
     .spec.source.helm.valuesObject.cilium = {
       enabled: true,
       apiHost: $host,
       subnetIds: $subnets
     }
+    | .spec.source.helm.valuesObject.albController.vpcId = $vpc
+    | .spec.source.helm.valuesObject.secretStores.accountId = $account
     | .spec.source.helm.valuesObject.karpenter.cluster = {
       subnetIds: $subnets,
       securityGroupId: $sg

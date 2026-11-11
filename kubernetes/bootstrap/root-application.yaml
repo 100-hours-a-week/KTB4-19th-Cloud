@@ -9,6 +9,10 @@ spec:
     repoURL: https://github.com/100-hours-a-week/KTB4-19th-Cloud.git
     targetRevision: main
     path: kubernetes/argocd-applications
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-platform.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

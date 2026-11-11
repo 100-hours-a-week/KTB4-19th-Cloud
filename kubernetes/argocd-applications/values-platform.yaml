@@ -1,0 +1,25 @@
+# Initial cluster foundation. Runtime VPC/account values come from bootstrap.
+platform:
+  enabled: true
+  networkPolicy:
+    enabled: true
+
+albController:
+  enabled: true
+
+externalSecrets:
+  enabled: true
+
+metricsServer:
+  enabled: true
+
+reloader:
+  enabled: true
+
+secretStores:
+  enabled: true
+
+karpenter:
+  enabled: true
+  # Initial staging has one eligible Managed Node for the controller.
+  controllerReplicas: 1
