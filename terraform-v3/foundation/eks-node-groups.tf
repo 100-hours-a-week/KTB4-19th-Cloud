@@ -4,6 +4,20 @@ variable "enable_eks_managed_node_groups" {
   default     = false
 }
 
+variable "eks_managed_node_group_names" {
+  description = "Select baseline node groups to create when managed node groups are enabled."
+  type        = set(string)
+  default     = ["prod-general", "staging-general", "observability"]
+
+  validation {
+    condition = alltrue([
+      for name in var.eks_managed_node_group_names :
+      contains(["prod-general", "staging-general", "observability"], name)
+    ])
+    error_message = "Choose only prod-general, staging-general or observability."
+  }
+}
+
 locals {
   eks_managed_node_groups = {
     prod-general = {
@@ -80,7 +94,10 @@ resource "aws_launch_template" "eks_managed_node" {
 }
 
 resource "aws_eks_node_group" "baseline" {
-  for_each = var.enable_eks_managed_node_groups ? local.eks_managed_node_groups : {}
+  for_each = {
+    for name, config in local.eks_managed_node_groups : name => config
+    if var.enable_eks_managed_node_groups && contains(var.eks_managed_node_group_names, name)
+  }
 
   cluster_name    = aws_eks_cluster.v3.name
   node_group_name = each.key
