@@ -1,9 +1,12 @@
 {{- if .Values.namespaces.enabled }}
-{{- range $environment, $_ := .Values.environments }}
+{{- $namespaces := concat (keys .Values.environments) (list "karpenter" "external-secrets" "reloader" "observability") | uniq | sortAlpha }}
+{{- range $namespace := $namespaces }}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ $environment }}
+  name: {{ $namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 {{- end }}
 {{- end }}
