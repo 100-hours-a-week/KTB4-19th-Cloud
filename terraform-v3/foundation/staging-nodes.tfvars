@@ -7,3 +7,7 @@ enable_eks_bootstrap_admin = true
 
 # Allow room for system Pods, Argo CD and common controllers.
 eks_managed_node_max_pods = 32
+
+# Allow integration with staging data services only; keep prod access closed.
+enable_v3_data_access       = true
+v3_data_access_environments = ["staging"]
