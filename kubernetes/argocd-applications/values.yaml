@@ -26,6 +26,7 @@ platform:
       qdrantCidrs: []
   ingress:
     enabled: false
+    environments: [staging, prod]
     certificateArn: ""
     publicSubnetIds: []
 

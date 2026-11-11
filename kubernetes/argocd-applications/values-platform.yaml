@@ -3,6 +3,13 @@ platform:
   enabled: true
   networkPolicy:
     enabled: true
+  ingress:
+    enabled: true
+    environments: [staging]
+    certificateArn: arn:aws:acm:ap-northeast-2:929368845727:certificate/30109a25-5f57-448c-85b1-51238d2ec735
+    publicSubnetIds:
+      - subnet-0d3960b65ce95d391
+      - subnet-03a9a4e9df8e05d6b
   environments:
     staging:
       mysqlCidrs:
