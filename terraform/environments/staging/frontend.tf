@@ -48,6 +48,12 @@ resource "aws_route53_record" "frontend_ipv6" {
   }
 }
 
+# Read the Controller-owned ALB; do not manage its lifecycle from V2 Terraform.
+data "aws_lb" "v3_api" {
+  count = var.enable_custom_domains && var.api_dns_target == "eks" ? 1 : 0
+  name  = "zipsai-v3-staging"
+}
+
 resource "aws_route53_record" "api" {
   count = var.enable_custom_domains ? 1 : 0
 
@@ -56,8 +62,8 @@ resource "aws_route53_record" "api" {
   type    = "A"
 
   alias {
-    name                   = module.ecs.alb_dns_name
-    zone_id                = module.ecs.alb_zone_id
+    name                   = var.api_dns_target == "eks" ? data.aws_lb.v3_api[0].dns_name : module.ecs.alb_dns_name
+    zone_id                = var.api_dns_target == "eks" ? data.aws_lb.v3_api[0].zone_id : module.ecs.alb_zone_id
     evaluate_target_health = true
   }
 }

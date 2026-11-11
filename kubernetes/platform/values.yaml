@@ -18,6 +18,7 @@ ingress:
 environments:
   staging:
     host: v3-staging-api.zipsai.co.kr
+    additionalHosts: []
     uploadsBucket: zipsai-staging-uploads
     mysqlCidrs: []
     qdrantCidrs: []

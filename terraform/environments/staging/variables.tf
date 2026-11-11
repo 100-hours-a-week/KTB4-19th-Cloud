@@ -97,3 +97,14 @@ variable "enable_custom_domains" {
   type        = bool
   default     = true
 }
+
+variable "api_dns_target" {
+  description = "ALB serving the existing staging API domain. Use ecs to roll back to V2."
+  type        = string
+  default     = "ecs"
+
+  validation {
+    condition     = contains(["ecs", "eks"], var.api_dns_target)
+    error_message = "api_dns_target must be ecs or eks."
+  }
+}
