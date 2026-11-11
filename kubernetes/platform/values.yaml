@@ -9,11 +9,12 @@ secretStores:
   accountId: ""
 ingress:
   enabled: false
+  environments: [staging, prod]
   certificateArn: ""
   publicSubnetIds: []
   managerPath: /api/v1/managers
   apiPath: /api
-  healthCheckPath: /readiness
+  healthCheckPath: /api/actuator/health/readiness
 environments:
   staging:
     host: v3-staging-api.zipsai.co.kr

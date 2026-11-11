@@ -3,7 +3,11 @@
 {{- if ne (len .Values.ingress.publicSubnetIds) 2 }}
 {{- fail "Provide the two existing public subnet IDs for ALB" }}
 {{- end }}
-{{- range $environment, $config := .Values.environments }}
+{{- if empty .Values.ingress.environments }}
+{{- fail "Select at least one environment before enabling public ingress" }}
+{{- end }}
+{{- range $environment := .Values.ingress.environments }}
+{{- $config := required (printf "Unknown ingress environment %s" $environment) (index $.Values.environments $environment) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -11,6 +15,7 @@ metadata:
   name: public-ingress
   namespace: {{ $environment }}
   annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: {{ printf "zipsai-v3-%s" $environment | quote }}
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/subnets: {{ join "," $.Values.ingress.publicSubnetIds | quote }}
