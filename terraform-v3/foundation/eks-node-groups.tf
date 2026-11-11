@@ -18,6 +18,17 @@ variable "eks_managed_node_group_names" {
   }
 }
 
+variable "eks_managed_node_max_pods" {
+  description = "Kubelet Pod limit for baseline nodes using Cilium ENI prefix delegation."
+  type        = number
+  default     = 16
+
+  validation {
+    condition     = var.eks_managed_node_max_pods >= 1 && floor(var.eks_managed_node_max_pods) == var.eks_managed_node_max_pods
+    error_message = "Set a positive integer Pod limit."
+  }
+}
+
 locals {
   eks_managed_node_groups = {
     prod-general = {
@@ -84,10 +95,10 @@ resource "aws_launch_template" "eks_managed_node" {
     spec:
       kubelet:
         flags:
-          - --max-pods=16
+          - --max-pods=${var.eks_managed_node_max_pods}
           - --register-with-taints=node.cilium.io/agent-not-ready=true:NoExecute
         config:
-          maxPods: 16
+          maxPods: ${var.eks_managed_node_max_pods}
     --NODEADM--
   MIME
   )

@@ -4,3 +4,6 @@ eks_managed_node_group_names   = ["staging-general", "observability"]
 
 # Keep initial admin access until Argo CD and operator RBAC are verified.
 enable_eks_bootstrap_admin = true
+
+# Allow room for system Pods, Argo CD and common controllers.
+eks_managed_node_max_pods = 32

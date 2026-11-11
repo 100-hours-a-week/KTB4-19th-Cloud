@@ -1,4 +1,9 @@
 argo-cd:
+  global:
+    nodeSelector:
+      kubernetes.io/os: linux
+      role: general
+
   crds:
     install: true
     keep: true
