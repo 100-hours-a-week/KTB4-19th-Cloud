@@ -35,3 +35,13 @@ karpenter:
   enabled: true
   # Initial staging has one eligible Managed Node for the controller.
   controllerReplicas: 1
+
+# Persistent storage and staging data services. Production remains disabled.
+stateful:
+  storageEnabled: true
+  stagingEnabled: true
+
+monitoring:
+  enabled: true
+  accountId: "929368845727"
+  lokiBucket: zipsai-v3-loki-929368845727
