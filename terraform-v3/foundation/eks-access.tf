@@ -57,7 +57,7 @@ data "aws_iam_policy_document" "ec2_assume_role" {
   }
 }
 
-# The instance profile connects the SSM agent. Operators use their own role for EKS.
+# The management host assumes the dedicated operator role for Kubernetes access.
 resource "aws_iam_role" "eks_management" {
   name               = "${local.cluster_name}-management"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -67,6 +67,26 @@ resource "aws_iam_role" "eks_management" {
 resource "aws_iam_role_policy_attachment" "eks_management_ssm" {
   role       = aws_iam_role.eks_management.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy" "eks_management_operator" {
+  name = "v3-eks-operator-assume"
+  role = aws_iam_role.eks_management.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["sts:AssumeRole"]
+        Resource = aws_iam_role.eks_operator.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["eks:DescribeCluster"]
+        Resource = aws_eks_cluster.v3.arn
+      },
+    ]
+  })
 }
 
 resource "aws_iam_instance_profile" "eks_management" {
@@ -106,7 +126,7 @@ data "aws_iam_policy_document" "eks_operator_trust" {
 
     principals {
       type        = "AWS"
-      identifiers = sort(tolist(var.eks_operator_principal_arns))
+      identifiers = sort(concat(tolist(var.eks_operator_principal_arns), [aws_iam_role.eks_management.arn]))
     }
   }
 }
