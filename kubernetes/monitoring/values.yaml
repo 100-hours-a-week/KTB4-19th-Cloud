@@ -63,8 +63,8 @@ kube-prometheus-stack:
         access: proxy
     sidecar:
       resources:
-        requests: {cpu: 10m, memory: 32Mi}
-        limits: {cpu: 50m, memory: 64Mi}
+        requests: {cpu: 10m, memory: 64Mi}
+        limits: {cpu: 50m, memory: 256Mi}
   kube-state-metrics:
     nodeSelector: {role: observability}
     tolerations: [{key: role, operator: Equal, value: observability, effect: NoSchedule}]
