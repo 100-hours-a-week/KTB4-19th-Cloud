@@ -128,3 +128,27 @@ AI 로그 수집 변경·Grafana 계정 발급은 이 Root 적용에 포함되�
 
 참고: [세션 문서 권한 검사](https://docs.aws.amazon.com/service-authorization/latest/reference/list_ssm.html),
 [자기 세션 종료 제한](https://docs.aws.amazon.com/systems-manager/latest/userguide/getting-started-restrict-access-examples.html#restrict-access-example-user-sessions).
+
+## V3 Grafana 접속
+
+V2 접속은 유지하고, V3는 같은 `grafana` Role 프로필로 별도 전용 문서를 사용한다.
+관리용 EC2에서 최초 한 번 아래 명령으로 loopback 포워딩 서비스를 설치한다.
+Pod 교체·EC2 재시작 뒤에는 systemd가 포워딩을 다시 연결한다.
+
+```bash
+sudo bash kubernetes/bootstrap/grafana/install.sh
+```
+
+팀원 Mac에서는 다음 명령을 실행하고 창을 유지한다.
+
+```bash
+aws --profile grafana --region ap-northeast-2 ssm start-session \
+  --target i-0cbde9387404cd61d \
+  --document-name zipsai-v3-grafana-port-forward \
+  --parameters '{"localPortNumber":["3000"]}'
+```
+
+`http://localhost:3000`에서 기존 Grafana 계정으로 로그인한다. 이전한 팀원 계정은 Editor다.
+로컬 3000이 사용 중이면 `localPortNumber`만 13001 등으로 바꾸고 같은 포트로 접속한다.
+관리용 EC2가 교체되면 `terraform output -raw grafana_v3_port_forward_command`로 새 명령을 확인한다.
+이 Role에는 관리용 EC2 셸·SendCommand·범용 포워딩 권한을 부여하지 않는다.
