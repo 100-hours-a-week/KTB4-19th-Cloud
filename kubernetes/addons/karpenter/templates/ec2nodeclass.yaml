@@ -5,10 +5,16 @@
 {{- if not (regexMatch "^v[0-9]{8}$" $amiVersion) }}
 {{- fail "cluster.amiVersion must be vYYYYMMDD" }}
 {{- end }}
+{{- $classes := list "v3-al2023" }}
+{{- if .Values.gpu.enabled }}
+{{- $classes = append $classes "v3-al2023-gpu" }}
+{{- end }}
+{{- range $name := $classes }}
+---
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
-  name: v3-al2023
+  name: {{ $name }}
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
@@ -16,11 +22,20 @@ spec:
   amiSelectorTerms:
     - alias: {{ printf "al2023@%s" $amiVersion | quote }}
   subnetSelectorTerms:
-    {{- range .Values.cluster.subnetIds }}
+    {{- range $.Values.cluster.subnetIds }}
     - id: {{ . | quote }}
     {{- end }}
   securityGroupSelectorTerms:
-    - id: {{ required "Provide the V3 EKS cluster security group ID" .Values.cluster.securityGroupId | quote }}
+    - id: {{ required "Provide the V3 EKS cluster security group ID" $.Values.cluster.securityGroupId | quote }}
+  {{- if eq $name "v3-al2023-gpu" }}
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: {{ $.Values.gpu.rootVolumeSize }}
+        volumeType: gp3
+        encrypted: true
+        deleteOnTermination: true
+  {{- end }}
   metadataOptions:
     httpTokens: required
     httpPutResponseHopLimit: 1
@@ -30,3 +45,4 @@ spec:
     Project: zipsai
     Stack: v3
     ManagedBy: karpenter
+{{- end }}
