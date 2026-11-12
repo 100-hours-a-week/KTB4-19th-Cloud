@@ -40,6 +40,7 @@ secretStores:
 
 karpenter:
   enabled: true
+  gpuEnabled: true
   # Initial staging has one eligible Managed Node for the controller.
   controllerReplicas: 1
 
@@ -54,9 +55,16 @@ monitoring:
   accountId: "929368845727"
   lokiBucket: zipsai-v3-loki-929368845727
 
-# Staging application manifests are owned by the Backend and AI repositories.
+# Application manifests are owned by the Backend and AI repositories.
 applications:
   staging:
+    resident-api: true
+    manager-api: true
+    chat-consumer: true
+    complaint-feedback-batch: true
+    ai-api: true
+    embedding-service: true
+  prod:
     resident-api: true
     manager-api: true
     chat-consumer: true
