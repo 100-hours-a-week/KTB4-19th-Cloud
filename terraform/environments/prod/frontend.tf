@@ -67,8 +67,8 @@ resource "aws_route53_record" "api" {
   type    = "A"
 
   alias {
-    name                   = module.ecs.alb_dns_name
-    zone_id                = module.ecs.alb_zone_id
+    name                   = var.api_dns_target == "eks" ? data.aws_lb.v3_production_api[0].dns_name : module.ecs.alb_dns_name
+    zone_id                = var.api_dns_target == "eks" ? data.aws_lb.v3_production_api[0].zone_id : module.ecs.alb_zone_id
     evaluate_target_health = true
   }
 }
