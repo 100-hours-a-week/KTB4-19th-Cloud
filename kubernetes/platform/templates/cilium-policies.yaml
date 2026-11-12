@@ -25,6 +25,12 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ $workload }}
   egress:
+    # The Pod Identity Agent endpoint is classified as host by Cilium.
+    - toEntities:
+        - host
+      toPorts:
+        - ports:
+            - {port: "80", protocol: TCP}
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
