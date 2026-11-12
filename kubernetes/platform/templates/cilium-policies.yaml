@@ -25,6 +25,12 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ $workload }}
   egress:
+    # The Pod Identity Agent endpoint is classified as host by Cilium.
+    - toEntities:
+        - host
+      toPorts:
+        - ports:
+            - {port: "80", protocol: TCP}
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -40,10 +46,11 @@ spec:
         - matchName: {{ printf "s3.%s.amazonaws.com" $.Values.region }}
         {{- if eq $workload "ai-api" }}
         - matchName: api.runpod.ai
-        {{- if eq $environment "staging" }}
         - matchName: api.runpod.io
         - matchPattern: "*.proxy.runpod.net"
         - matchName: openrouter.ai
+        {{- if eq $environment "prod" }}
+        - matchName: api.tavily.com
         {{- end }}
         {{- end }}
       toPorts:

@@ -20,6 +20,8 @@ spec:
           {{- toYaml .Values.platform.environments | nindent 10 }}
         ingress:
           {{- toYaml .Values.platform.ingress | nindent 10 }}
+        environments:
+          {{- toYaml .Values.platform.environments | nindent 10 }}
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system

@@ -75,6 +75,27 @@ spec:
             matchLabels:
               app.kubernetes.io/name: rabbitmq
       {{- end }}
+      initContainers:
+        - name: fix-cookie-permissions
+          image: {{ .Values.rabbitmq.image }}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              # fsGroup can add group permissions when an existing PVC is mounted.
+              # Erlang requires the cookie to be accessible by its owner only.
+              if [ -f /var/lib/rabbitmq/.erlang.cookie ]; then
+                chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+                chmod 600 /var/lib/rabbitmq/.erlang.cookie
+              fi
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/rabbitmq}
       containers:
         - name: rabbitmq
           image: {{ .Values.rabbitmq.image }}
