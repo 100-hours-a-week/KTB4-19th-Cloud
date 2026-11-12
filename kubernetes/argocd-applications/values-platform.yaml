@@ -12,6 +12,7 @@ platform:
       - subnet-03a9a4e9df8e05d6b
   environments:
     staging:
+      additionalHosts: [api-v2.zipsai.co.kr]
       mysqlCidrs:
         - 10.0.20.200/32
       qdrantCidrs:
