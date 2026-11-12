@@ -1,5 +1,11 @@
 locals {
-  prometheus_config_base64 = base64encode(file("${path.root}/../../monitoring/prometheus.yml"))
+  prometheus_config_source = yamldecode(file("${path.root}/../../monitoring/prometheus.yml"))
+  prometheus_config_base64 = base64encode(yamlencode(merge(local.prometheus_config_source, {
+    scrape_configs = [
+      for job in local.prometheus_config_source.scrape_configs : job
+      if var.enable_v2_application_observability || job.job_name != "ai-application"
+    ]
+  })))
 }
 
 resource "aws_ssm_document" "prometheus_config" {

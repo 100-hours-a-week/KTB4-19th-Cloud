@@ -21,11 +21,13 @@ module "mysql" {
   replica_subnet_id         = data.terraform_remote_state.network.outputs.private_data_subnet_ids.ap_northeast_2a
   replica_availability_zone = "ap-northeast-2a"
 
-  client_security_group_ids = {
-    legacy_backend = data.aws_security_group.legacy_backend.id
-    api_tasks      = aws_security_group.api_tasks.id
-    worker_tasks   = aws_security_group.worker_tasks.id
-  }
+  client_security_group_ids = merge(
+    { legacy_backend = data.aws_security_group.legacy_backend.id },
+    var.enable_v2_apps ? {
+      api_tasks    = aws_security_group.api_tasks[0].id
+      worker_tasks = aws_security_group.worker_tasks[0].id
+    } : {}
+  )
 
   monitoring_security_group_id = data.terraform_remote_state.network.outputs.monitoring_server_security_group_id
   data_volume_size_gib         = var.mysql_data_volume_size_gib

@@ -1,4 +1,5 @@
 module "redis" {
+  enabled              = var.enable_v2_apps
   source               = "../../modules/redis"
   name_prefix          = local.name_prefix
   environment          = local.environment
@@ -11,10 +12,10 @@ module "redis" {
   root_volume_size_gib = var.redis_root_volume_size_gib
   maxmemory_mib        = var.redis_maxmemory_mib
   aws_region           = var.aws_region
-  client_security_group_ids = {
-    api_tasks    = aws_security_group.api_tasks.id
-    worker_tasks = aws_security_group.worker_tasks.id
-  }
+  client_security_group_ids = var.enable_v2_apps ? {
+    api_tasks    = aws_security_group.api_tasks[0].id
+    worker_tasks = aws_security_group.worker_tasks[0].id
+  } : {}
   image_version    = var.redis_image_version
   username         = var.redis_username
   password_version = var.redis_password_version

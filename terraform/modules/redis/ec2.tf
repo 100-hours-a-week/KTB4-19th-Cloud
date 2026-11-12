@@ -25,6 +25,8 @@ resource "aws_ssm_parameter" "username" {
 }
 
 resource "aws_security_group" "redis" {
+  count = var.enabled ? 1 : 0
+
   name        = "${var.name_prefix}-redis-sg"
   description = "Private Redis access from approved API and Worker tasks"
   vpc_id      = var.vpc_id
@@ -32,8 +34,8 @@ resource "aws_security_group" "redis" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "clients" {
-  for_each                     = var.client_security_group_ids
-  security_group_id            = aws_security_group.redis.id
+  for_each                     = var.enabled ? var.client_security_group_ids : {}
+  security_group_id            = aws_security_group.redis[0].id
   referenced_security_group_id = each.value
   from_port                    = 6379
   to_port                      = 6379
@@ -42,7 +44,9 @@ resource "aws_vpc_security_group_ingress_rule" "clients" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "outbound" {
-  security_group_id = aws_security_group.redis.id
+  count = var.enabled ? 1 : 0
+
+  security_group_id = aws_security_group.redis[0].id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
   description       = "Package and image downloads, SSM and CloudWatch through App subnet NAT"
@@ -56,6 +60,8 @@ resource "aws_cloudwatch_log_group" "redis" {
 }
 
 resource "aws_iam_role" "instance" {
+  count = var.enabled ? 1 : 0
+
   name = "${var.name_prefix}-redis-ec2-role"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
@@ -65,13 +71,17 @@ resource "aws_iam_role" "instance" {
 }
 
 resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.instance.name
+  count = var.enabled ? 1 : 0
+
+  role       = aws_iam_role.instance[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy" "runtime" {
+  count = var.enabled ? 1 : 0
+
   name = "${var.name_prefix}-redis-runtime"
-  role = aws_iam_role.instance.id
+  role = aws_iam_role.instance[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -82,18 +92,24 @@ resource "aws_iam_role_policy" "runtime" {
 }
 
 resource "aws_iam_instance_profile" "redis" {
+  count = var.enabled ? 1 : 0
+
   name = "${var.name_prefix}-redis-profile"
-  role = aws_iam_role.instance.name
+  role = aws_iam_role.instance[0].name
   tags = var.common_tags
 }
 
+# This legacy cache is intentionally destroyable when enabled=false.
+# Authoritative MySQL and Qdrant data retain their separate lifecycle protection.
 resource "aws_instance" "redis" {
+  count = var.enabled ? 1 : 0
+
   ami                         = var.ami_id
   instance_type               = var.instance_type
   subnet_id                   = var.subnet_id
   associate_public_ip_address = false
-  vpc_security_group_ids      = [aws_security_group.redis.id]
-  iam_instance_profile        = aws_iam_instance_profile.redis.name
+  vpc_security_group_ids      = [aws_security_group.redis[0].id]
+  iam_instance_profile        = aws_iam_instance_profile.redis[0].name
   ebs_optimized               = true
   user_data                   = file("${path.module}/templates/bootstrap.sh")
   user_data_replace_on_change = false
@@ -112,17 +128,18 @@ resource "aws_instance" "redis" {
   }
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-redis" })
   lifecycle {
-    prevent_destroy = true
     precondition {
       condition     = data.aws_ami.redis.architecture == "x86_64"
       error_message = "Redis t3a requires a pinned x86_64 AMI."
     }
   }
-  depends_on = [aws_iam_role_policy_attachment.ssm, aws_iam_role_policy.runtime, aws_vpc_security_group_egress_rule.outbound]
+  depends_on = [aws_iam_role_policy_attachment.ssm[0], aws_iam_role_policy.runtime[0], aws_vpc_security_group_egress_rule.outbound[0]]
 }
 
 # Settings deployment is separate from the host. No secret values in user data or SSM document.
 resource "aws_ssm_document" "configure" {
+  count = var.enabled ? 1 : 0
+
   name            = "${var.name_prefix}-redis-configure"
   document_type   = "Command"
   document_format = "JSON"
@@ -150,20 +167,24 @@ resource "aws_ssm_document" "configure" {
 }
 
 resource "aws_ssm_association" "configure" {
-  name             = aws_ssm_document.configure.name
-  document_version = aws_ssm_document.configure.latest_version
+  count = var.enabled ? 1 : 0
+
+  name             = aws_ssm_document.configure[0].name
+  document_version = aws_ssm_document.configure[0].latest_version
   targets {
     key    = "InstanceIds"
-    values = [aws_instance.redis.id]
+    values = [aws_instance.redis[0].id]
   }
   wait_for_success_timeout_seconds = 1200
 }
 
 resource "aws_route53_record" "redis" {
+  count = var.enabled ? 1 : 0
+
   zone_id    = var.private_dns_zone_id
   name       = local.endpoint
   type       = "A"
   ttl        = 30
-  records    = [aws_instance.redis.private_ip]
-  depends_on = [aws_ssm_association.configure]
+  records    = [aws_instance.redis[0].private_ip]
+  depends_on = [aws_ssm_association.configure[0]]
 }

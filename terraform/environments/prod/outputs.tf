@@ -60,12 +60,12 @@ output "api_alb_zone_id" {
 
 output "api_tasks_security_group_id" {
   description = "Security group reserved for Production ECS API tasks."
-  value       = aws_security_group.api_tasks.id
+  value       = try(aws_security_group.api_tasks[0].id, null)
 }
 
 output "worker_tasks_security_group_id" {
   description = "Security group reserved for Production ECS Worker tasks."
-  value       = aws_security_group.worker_tasks.id
+  value       = try(aws_security_group.worker_tasks[0].id, null)
 }
 
 output "appconfig_runtime_configuration" {

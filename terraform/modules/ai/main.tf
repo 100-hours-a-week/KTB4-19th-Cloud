@@ -7,12 +7,14 @@ data "aws_ami" "host" {
 }
 
 locals {
-  hosts = {
+  all_hosts = {
     ai-api    = { port = 8000 }
     embedding = { port = 8000 }
     qdrant    = { port = 6333 }
   }
-  dns_names = { for name in keys(local.hosts) : name => "${name}.${var.environment}.zipsai.internal" }
+  hosts     = { for name, host in local.all_hosts : name => host if name == "qdrant" || var.enable_application_hosts }
+  instances = merge(aws_instance.host, aws_instance.qdrant)
+  dns_names = { for name in keys(local.all_hosts) : name => "${name}.${var.environment}.zipsai.internal" }
   runtime_defaults = {
     ai-api = merge({
       QDRANT_COLLECTION            = "documents"
@@ -72,7 +74,7 @@ resource "aws_security_group" "host" {
   tags        = merge(var.common_tags, { Name = "${var.name_prefix}-${each.key}-sg" })
 }
 resource "aws_vpc_security_group_ingress_rule" "api_clients" {
-  for_each                     = var.client_security_group_ids
+  for_each                     = var.enable_application_hosts ? var.client_security_group_ids : {}
   security_group_id            = aws_security_group.host["ai-api"].id
   referenced_security_group_id = each.value
   ip_protocol                  = "tcp"
@@ -81,7 +83,7 @@ resource "aws_vpc_security_group_ingress_rule" "api_clients" {
   tags                         = var.common_tags
 }
 resource "aws_vpc_security_group_ingress_rule" "dependencies" {
-  for_each                     = { for name, host in local.hosts : name => host if name != "ai-api" }
+  for_each                     = { for name, host in local.hosts : name => host if name != "ai-api" && var.enable_application_hosts }
   security_group_id            = aws_security_group.host[each.key].id
   referenced_security_group_id = aws_security_group.host["ai-api"].id
   ip_protocol                  = "tcp"
@@ -98,7 +100,7 @@ resource "aws_vpc_security_group_egress_rule" "outbound" {
   tags              = var.common_tags
 }
 resource "aws_cloudwatch_log_group" "host" {
-  for_each          = local.hosts
+  for_each          = local.all_hosts
   name              = "${var.log_group_prefix != null ? var.log_group_prefix : "/zipsai/${var.environment}"}/${each.key}"
   retention_in_days = 14
   tags              = var.common_tags
@@ -180,8 +182,46 @@ resource "aws_ebs_volume" "qdrant" {
   tags              = merge(var.common_tags, { Name = "${var.name_prefix}-qdrant-data" })
   lifecycle { prevent_destroy = true }
 }
+# V2 application hosts may be retired independently of the protected Qdrant host.
 resource "aws_instance" "host" {
-  for_each                    = local.hosts
+  for_each                    = { for name, host in local.hosts : name => host if name != "qdrant" }
+  ami                         = var.ami_id
+  instance_type               = var.instance_types[each.key]
+  subnet_id                   = var.subnet_id
+  associate_public_ip_address = false
+  vpc_security_group_ids      = [aws_security_group.host[each.key].id]
+  iam_instance_profile        = aws_iam_instance_profile.host[each.key].name
+  ebs_optimized               = true
+  user_data_replace_on_change = false
+  user_data = templatefile("${path.module}/templates/bootstrap.sh.tftpl", {
+    data_volume_id = each.key == "qdrant" ? replace(aws_ebs_volume.qdrant.id, "-", "") : ""
+  })
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+  credit_specification { cpu_credits = "standard" }
+  root_block_device {
+    encrypted             = true
+    volume_type           = "gp3"
+    volume_size           = var.root_volume_sizes[each.key]
+    delete_on_termination = true
+    tags                  = merge(var.common_tags, { Name = "${var.name_prefix}-${each.key}-root" })
+  }
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-${each.key}" })
+  lifecycle {
+    ignore_changes = [user_data]
+    precondition {
+      condition     = data.aws_ami.host.architecture == "x86_64"
+      error_message = "AI API and Embedding images require amd64."
+    }
+  }
+  depends_on = [aws_iam_role_policy_attachment.ssm, aws_iam_role_policy.runtime, aws_vpc_security_group_egress_rule.outbound]
+}
+
+resource "aws_instance" "qdrant" {
+  for_each                    = { for name, host in local.hosts : name => host if name == "qdrant" }
   ami                         = var.ami_id
   instance_type               = var.instance_types[each.key]
   subnet_id                   = var.subnet_id
@@ -243,7 +283,7 @@ resource "aws_ssm_document" "deploy" {
 }
 resource "aws_volume_attachment" "qdrant" {
   device_name                    = "/dev/sdf"
-  instance_id                    = aws_instance.host["qdrant"].id
+  instance_id                    = aws_instance.qdrant["qdrant"].id
   volume_id                      = aws_ebs_volume.qdrant.id
   stop_instance_before_detaching = true
 }
@@ -253,5 +293,5 @@ resource "aws_route53_record" "host" {
   name     = local.dns_names[each.key]
   type     = "A"
   ttl      = 30
-  records  = [aws_instance.host[each.key].private_ip]
+  records  = [local.instances[each.key].private_ip]
 }

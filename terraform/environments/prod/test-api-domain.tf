@@ -16,7 +16,7 @@ variable "test_api_domain_name" {
 }
 
 resource "aws_route53_record" "test_api" {
-  count = var.enable_test_api_domain ? 1 : 0
+  count = var.enable_v2_apps && var.enable_test_api_domain ? 1 : 0
 
   zone_id = data.terraform_remote_state.shared.outputs.route53_zone_id
   name    = var.test_api_domain_name
@@ -35,7 +35,7 @@ output "test_api_url" {
 
 # Public tests must not expose Actuator metrics. Private Task-IP collection is unaffected.
 resource "aws_lb_listener_rule" "hide_actuator_metrics" {
-  count = (local.api_domain_enabled || var.enable_test_api_domain) ? 1 : 0
+  count = var.enable_v2_apps && (local.api_domain_enabled || var.enable_test_api_domain) ? 1 : 0
 
   listener_arn = module.ecs.https_listener_arn
   priority     = 10

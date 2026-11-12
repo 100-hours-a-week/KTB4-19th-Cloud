@@ -1,8 +1,8 @@
-output "api_url" { value = "http://${local.dns_names["ai-api"]}:8000" }
+output "api_url" { value = var.enable_application_hosts ? "http://${local.dns_names["ai-api"]}:8000" : null }
 output "deployment_contract" {
   value = {
     for name in keys(local.hosts) : name => {
-      instance_id        = aws_instance.host[name].id
+      instance_id        = local.instances[name].id
       private_dns        = local.dns_names[name]
       port               = local.hosts[name].port
       runtime_parameter  = aws_ssm_parameter.runtime[name].name
