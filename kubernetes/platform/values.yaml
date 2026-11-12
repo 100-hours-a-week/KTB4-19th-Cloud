@@ -17,13 +17,13 @@ ingress:
   healthCheckPath: /api/actuator/health/readiness
 environments:
   staging:
-    host: v3-staging-api.zipsai.co.kr
+    host: api-v2.zipsai.co.kr
     additionalHosts: []
     uploadsBucket: zipsai-staging-uploads
     mysqlCidrs: []
     qdrantCidrs: []
   prod:
-    host: v3-prod-api.zipsai.co.kr
+    host: api.zipsai.co.kr
     uploadsBucket: zipsai-prod-uploads
     mysqlCidrs: []
     qdrantCidrs: []
