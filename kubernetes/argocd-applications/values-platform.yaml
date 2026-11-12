@@ -43,10 +43,11 @@ karpenter:
   # Initial staging has one eligible Managed Node for the controller.
   controllerReplicas: 1
 
-# Persistent storage and staging data services. Production remains disabled.
+# Persistent storage and environment data services. Prod uses manual Sync.
 stateful:
   storageEnabled: true
   stagingEnabled: true
+  prodEnabled: true
 
 monitoring:
   enabled: true
