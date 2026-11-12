@@ -40,10 +40,11 @@ spec:
         - matchName: {{ printf "s3.%s.amazonaws.com" $.Values.region }}
         {{- if eq $workload "ai-api" }}
         - matchName: api.runpod.ai
-        {{- if eq $environment "staging" }}
         - matchName: api.runpod.io
         - matchPattern: "*.proxy.runpod.net"
         - matchName: openrouter.ai
+        {{- if eq $environment "prod" }}
+        - matchName: api.tavily.com
         {{- end }}
         {{- end }}
       toPorts:
