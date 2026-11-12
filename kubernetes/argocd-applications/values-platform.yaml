@@ -5,7 +5,7 @@ platform:
     enabled: true
   ingress:
     enabled: true
-    environments: [staging]
+    environments: [staging, prod]
     certificateArn: arn:aws:acm:ap-northeast-2:929368845727:certificate/30109a25-5f57-448c-85b1-51238d2ec735
     publicSubnetIds:
       - subnet-0d3960b65ce95d391
@@ -17,6 +17,7 @@ platform:
       qdrantCidrs:
         - 10.0.10.83/32
     prod:
+      host: api.zipsai.co.kr
       mysqlCidrs:
         - 10.0.20.196/32
         - 10.0.21.153/32
