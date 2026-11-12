@@ -15,6 +15,7 @@ cluster:
 
 gpu:
   enabled: false
+  rootVolumeSize: 40Gi
 
 nvidia-device-plugin:
   nodeSelector:

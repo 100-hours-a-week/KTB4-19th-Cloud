@@ -26,7 +26,7 @@ spec:
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
-        name: v3-al2023
+        name: {{ ternary "v3-al2023-gpu" "v3-al2023" (eq $pool.role "gpu") }}
       startupTaints:
         - key: node.cilium.io/agent-not-ready
           value: "true"
