@@ -37,3 +37,20 @@ CI는 Backend ECR Push/조회만, CD는 자기 환경의 API/Worker Service·Tas
 ECS 애플리케이션 로그는 FireLens를 통해 Private Loki로 전달한다. 초기 Loki 인덱스 Label은 `environment`, `service`만 사용하며, JSON 로그의 `level` 등은 조회 시 파싱한다.
 
 DB 접속정보와 Secret은 Parameter Store에서 주입한다. 마이그레이션 중 Writer, 읽기 비율, Outbox Worker 방향처럼 재배포 없이 바꿔야 하는 값은 AppConfig에서 관리한다.
+
+## V3 전환 후 V2 앱 자원 폐기
+
+`environments/prod/v2-retired.auto.tfvars`와 `environments/staging/v2-retired.auto.tfvars`가
+`enable_v2_apps = false`, `api_dns_target = "eks"`를 자동 적용한다.
+ECS·구형 ALB·AI API·Embedding·Redis EC2와 전용 SG/IAM은 제거하지만 모듈 원본은 남긴다.
+MySQL·Qdrant·프론트·공용 네트워크·ECR은 기존 State에서 계속 관리한다.
+Qdrant EC2는 `moved` 블록으로 보호된 별도 리소스에 연결하며 서버를 재생성하지 않는다.
+
+V2 ALB 로그 S3와 CloudWatch 로그는 보관하고, V2 모니터링 서버도 유지한다.
+모니터링의 `enable_v2_application_observability = false`는 옛 AI EC2 검색·수집 연결만 제거하며
+MySQL 수집과 Qdrant 로그 수집은 유지한다. 관측 연결 정리를 앱 자원 삭제보다 먼저 적용한다.
+V2 앱 관련 자원과 공용 자원이 같은 Root에 있으므로 Root 전체에 `terraform destroy`를 실행하지 않는다.
+
+이번 폐기에서는 기존 프론트·S3 설정 차이를 제외한 검토된 범위만 적용했다.
+후속 전체 Plan에 나오는 프론트 변경은 앱 폐기와 별도로 검토한다.
+Backend·AI의 이미지 빌드 CI는 유지하고, 폐기한 ECS/EC2를 대상으로 하는 V2 CD는 종료해야 한다.

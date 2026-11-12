@@ -1,26 +1,26 @@
 output "cluster_arn" {
   description = "ECS cluster ARN."
-  value       = aws_ecs_cluster.this.arn
+  value       = try(aws_ecs_cluster.this[0].arn, null)
 }
 
 output "deployment_contract_parameter_name" {
   description = "SSM parameter containing infrastructure inputs for Backend CD."
-  value       = aws_ssm_parameter.deployment_contract.name
+  value       = try(aws_ssm_parameter.deployment_contract[0].name, null)
 }
 
 output "api_service_name" {
   description = "API ECS service name."
-  value       = aws_ecs_service.api.name
+  value       = try(aws_ecs_service.api[0].name, null)
 }
 
 output "worker_service_name" {
   description = "Worker ECS service name."
-  value       = aws_ecs_service.worker.name
+  value       = try(aws_ecs_service.worker[0].name, null)
 }
 
 output "alb_arn" {
   description = "API Application Load Balancer ARN."
-  value       = aws_lb.api.arn
+  value       = try(aws_lb.api[0].arn, null)
 }
 
 output "https_listener_arn" {
@@ -30,15 +30,15 @@ output "https_listener_arn" {
 
 output "alb_dns_name" {
   description = "API Application Load Balancer DNS name."
-  value       = aws_lb.api.dns_name
+  value       = try(aws_lb.api[0].dns_name, null)
 }
 
 output "alb_zone_id" {
   description = "API Application Load Balancer Route 53 zone ID."
-  value       = aws_lb.api.zone_id
+  value       = try(aws_lb.api[0].zone_id, null)
 }
 
 output "api_target_group_arn" {
   description = "API target group ARN."
-  value       = aws_lb_target_group.api.arn
+  value       = try(aws_lb_target_group.api[0].arn, null)
 }

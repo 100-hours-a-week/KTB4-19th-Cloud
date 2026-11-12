@@ -204,6 +204,8 @@ data "aws_iam_policy_document" "ecs_tasks_assume_role" {
 data "aws_region" "current" {}
 
 resource "aws_iam_role" "execution" {
+  count = var.enabled ? 1 : 0
+
   name               = "${var.name_prefix}-ecs-execution-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
 
@@ -211,7 +213,9 @@ resource "aws_iam_role" "execution" {
 }
 
 resource "aws_iam_role_policy_attachment" "execution" {
-  role       = aws_iam_role.execution.name
+  count = var.enabled ? 1 : 0
+
+  role       = aws_iam_role.execution[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
@@ -225,14 +229,16 @@ data "aws_iam_policy_document" "execution_parameters" {
 }
 
 resource "aws_iam_role_policy" "execution_parameters" {
-  count = length(local.all_secret_arns) > 0 ? 1 : 0
+  count = var.enabled && (length(local.all_secret_arns) > 0) ? 1 : 0
 
   name   = "${var.name_prefix}-ecs-parameters"
-  role   = aws_iam_role.execution.id
+  role   = aws_iam_role.execution[0].id
   policy = data.aws_iam_policy_document.execution_parameters[0].json
 }
 
 resource "aws_iam_role" "api_task" {
+  count = var.enabled ? 1 : 0
+
   name               = "${var.name_prefix}-api-task-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
 
@@ -278,12 +284,16 @@ data "aws_iam_policy_document" "api_task" {
 }
 
 resource "aws_iam_role_policy" "api_task" {
+  count = var.enabled ? 1 : 0
+
   name   = "${var.name_prefix}-api-task-policy"
-  role   = aws_iam_role.api_task.id
+  role   = aws_iam_role.api_task[0].id
   policy = data.aws_iam_policy_document.api_task.json
 }
 
 resource "aws_iam_role" "worker_task" {
+  count = var.enabled ? 1 : 0
+
   name               = "${var.name_prefix}-worker-task-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
 
@@ -319,25 +329,31 @@ data "aws_iam_policy_document" "worker_task" {
 }
 
 resource "aws_iam_role_policy" "worker_task" {
+  count = var.enabled ? 1 : 0
+
   name   = "${var.name_prefix}-worker-task-policy"
-  role   = aws_iam_role.worker_task.id
+  role   = aws_iam_role.worker_task[0].id
   policy = data.aws_iam_policy_document.worker_task.json
 }
 
 resource "aws_ecs_cluster" "this" {
+  count = var.enabled ? 1 : 0
+
   name = "${var.name_prefix}-cluster"
 
   tags = var.common_tags
 }
 
 resource "aws_ecs_task_definition" "api" {
+  count = var.enabled ? 1 : 0
+
   family                   = "${var.name_prefix}-api"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "1024"
   memory                   = "2048"
-  execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn            = aws_iam_role.api_task.arn
+  execution_role_arn       = aws_iam_role.execution[0].arn
+  task_role_arn            = aws_iam_role.api_task[0].arn
   enable_fault_injection   = false
   container_definitions    = jsonencode([local.api_container, local.appconfig_agent_container, local.log_router_container])
 
@@ -356,13 +372,15 @@ resource "aws_ecs_task_definition" "api" {
 }
 
 resource "aws_ecs_task_definition" "worker" {
+  count = var.enabled ? 1 : 0
+
   family                   = "${var.name_prefix}-worker"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "512"
   memory                   = "1024"
-  execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn            = aws_iam_role.worker_task.arn
+  execution_role_arn       = aws_iam_role.execution[0].arn
+  task_role_arn            = aws_iam_role.worker_task[0].arn
   enable_fault_injection   = false
   container_definitions    = jsonencode([local.worker_container_base, local.appconfig_agent_container, local.log_router_container])
 
@@ -379,6 +397,8 @@ resource "aws_ecs_task_definition" "worker" {
 }
 
 resource "aws_security_group" "alb" {
+  count = var.enabled ? 1 : 0
+
   name        = "${var.name_prefix}-alb-sg"
   description = "Public entry point for the API ALB"
   vpc_id      = var.vpc_id
@@ -391,7 +411,9 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
-  security_group_id = aws_security_group.alb.id
+  count = var.enabled ? 1 : 0
+
+  security_group_id = aws_security_group.alb[0].id
   description       = "Public HTTP access"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
@@ -402,9 +424,9 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_https" {
-  count = local.https_enabled ? 1 : 0
+  count = var.enabled && (local.https_enabled) ? 1 : 0
 
-  security_group_id = aws_security_group.alb.id
+  security_group_id = aws_security_group.alb[0].id
   description       = "Public HTTPS access"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
@@ -415,7 +437,9 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_to_api" {
-  security_group_id            = aws_security_group.alb.id
+  count = var.enabled ? 1 : 0
+
+  security_group_id            = aws_security_group.alb[0].id
   description                  = "Forward API requests to ECS tasks"
   referenced_security_group_id = var.api_security_group_id
   from_port                    = 8080
@@ -426,9 +450,11 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_api" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "api_from_alb" {
+  count = var.enabled ? 1 : 0
+
   security_group_id            = var.api_security_group_id
   description                  = "API requests from the ALB"
-  referenced_security_group_id = aws_security_group.alb.id
+  referenced_security_group_id = aws_security_group.alb[0].id
   from_port                    = 8080
   ip_protocol                  = "tcp"
   to_port                      = 8080
@@ -437,10 +463,12 @@ resource "aws_vpc_security_group_ingress_rule" "api_from_alb" {
 }
 
 resource "aws_lb" "api" {
+  count = var.enabled ? 1 : 0
+
   name               = "${var.name_prefix}-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [aws_security_group.alb[0].id]
   subnets            = var.public_subnet_ids
   idle_timeout       = 120
 
@@ -462,6 +490,8 @@ resource "aws_lb" "api" {
 }
 
 resource "aws_lb_target_group" "api" {
+  count = var.enabled ? 1 : 0
+
   name                 = "${var.name_prefix}-api-tg"
   port                 = 8080
   protocol             = "HTTP"
@@ -485,13 +515,15 @@ resource "aws_lb_target_group" "api" {
 }
 
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.api.arn
+  count = var.enabled ? 1 : 0
+
+  load_balancer_arn = aws_lb.api[0].arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
     type             = local.https_enabled ? "redirect" : "forward"
-    target_group_arn = local.https_enabled ? null : aws_lb_target_group.api.arn
+    target_group_arn = local.https_enabled ? null : aws_lb_target_group.api[0].arn
 
     dynamic "redirect" {
       for_each = local.https_enabled ? [1] : []
@@ -508,9 +540,9 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_listener" "https" {
-  count = local.https_enabled ? 1 : 0
+  count = var.enabled && (local.https_enabled) ? 1 : 0
 
-  load_balancer_arn = aws_lb.api.arn
+  load_balancer_arn = aws_lb.api[0].arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
@@ -518,16 +550,18 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.api[0].arn
   }
 
   tags = var.common_tags
 }
 
 resource "aws_ecs_service" "api" {
+  count = var.enabled ? 1 : 0
+
   name                               = "${var.name_prefix}-api"
-  cluster                            = aws_ecs_cluster.this.id
-  task_definition                    = aws_ecs_task_definition.api.arn
+  cluster                            = aws_ecs_cluster.this[0].id
+  task_definition                    = aws_ecs_task_definition.api[0].arn
   desired_count                      = var.api_desired_count
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
@@ -548,12 +582,12 @@ resource "aws_ecs_service" "api" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.api[0].arn
     container_name   = local.api_container_name
     container_port   = 8080
   }
 
-  depends_on = [aws_lb_listener.http, aws_lb_listener.https]
+  depends_on = [aws_lb_listener.http[0], aws_lb_listener.https]
 
   tags = var.common_tags
 
@@ -565,9 +599,11 @@ resource "aws_ecs_service" "api" {
 }
 
 resource "aws_ecs_service" "worker" {
+  count = var.enabled ? 1 : 0
+
   name                               = "${var.name_prefix}-worker"
-  cluster                            = aws_ecs_cluster.this.id
-  task_definition                    = aws_ecs_task_definition.worker.arn
+  cluster                            = aws_ecs_cluster.this[0].id
+  task_definition                    = aws_ecs_task_definition.worker[0].arn
   desired_count                      = var.worker_desired_count
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"

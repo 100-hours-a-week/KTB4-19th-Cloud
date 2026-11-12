@@ -20,6 +20,7 @@ data "terraform_remote_state" "network" {
 }
 
 resource "aws_security_group" "api_tasks" {
+  count       = var.enable_v2_apps ? 1 : 0
   name        = "${local.name_prefix}-api-tasks-sg"
   description = "Security group for Staging ECS API tasks"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
@@ -32,7 +33,8 @@ resource "aws_security_group" "api_tasks" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "api_tasks_all_ipv4" {
-  security_group_id = aws_security_group.api_tasks.id
+  count             = var.enable_v2_apps ? 1 : 0
+  security_group_id = aws_security_group.api_tasks[0].id
   description       = "Application dependencies through the private subnet route"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
@@ -43,6 +45,7 @@ resource "aws_vpc_security_group_egress_rule" "api_tasks_all_ipv4" {
 }
 
 resource "aws_security_group" "worker_tasks" {
+  count       = var.enable_v2_apps ? 1 : 0
   name        = "${local.name_prefix}-worker-tasks-sg"
   description = "Security group for Staging ECS Worker tasks"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
@@ -55,7 +58,8 @@ resource "aws_security_group" "worker_tasks" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "worker_tasks_all_ipv4" {
-  security_group_id = aws_security_group.worker_tasks.id
+  count             = var.enable_v2_apps ? 1 : 0
+  security_group_id = aws_security_group.worker_tasks[0].id
   description       = "Worker dependencies through the private subnet route"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
@@ -86,10 +90,10 @@ module "mysql" {
   replica_availability_zone = "ap-northeast-2a"
 
   client_security_group_ids = merge(
-    {
-      api_tasks    = aws_security_group.api_tasks.id
-      worker_tasks = aws_security_group.worker_tasks.id
-    },
+    var.enable_v2_apps ? {
+      api_tasks    = aws_security_group.api_tasks[0].id
+      worker_tasks = aws_security_group.worker_tasks[0].id
+    } : {},
     var.enable_rehearsal_source ? {
       rehearsal_source = data.aws_security_group.rehearsal_source[0].id
     } : {}

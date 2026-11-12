@@ -30,7 +30,8 @@ locals {
 }
 
 module "ecs" {
-  source = "../../modules/ecs"
+  enabled = var.enable_v2_apps
+  source  = "../../modules/ecs"
 
   name_prefix = local.name_prefix
   environment = local.environment
@@ -43,8 +44,8 @@ module "ecs" {
   ]
   private_app_subnet_ids = [data.terraform_remote_state.network.outputs.private_app_subnet_2c_id]
 
-  api_security_group_id               = aws_security_group.api_tasks.id
-  worker_security_group_id            = aws_security_group.worker_tasks.id
+  api_security_group_id               = try(aws_security_group.api_tasks[0].id, null)
+  worker_security_group_id            = try(aws_security_group.worker_tasks[0].id, null)
   monitoring_client_security_group_id = data.terraform_remote_state.network.outputs.monitoring_client_security_group_id
   backend_image_uri                   = local.backend_image_uri
 

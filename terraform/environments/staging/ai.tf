@@ -21,6 +21,7 @@ locals {
 }
 
 module "ai" {
+  enable_application_hosts    = var.enable_v2_apps
   source                      = "../../modules/ai"
   name_prefix                 = local.name_prefix
   environment                 = local.environment
@@ -35,10 +36,10 @@ module "ai" {
   instance_types              = var.ai_instance_types
   root_volume_sizes           = var.ai_root_volume_sizes
   qdrant_data_volume_size_gib = var.qdrant_data_volume_size_gib
-  client_security_group_ids = {
-    api_tasks    = aws_security_group.api_tasks.id
-    worker_tasks = aws_security_group.worker_tasks.id
-  }
+  client_security_group_ids = var.enable_v2_apps ? {
+    api_tasks    = aws_security_group.api_tasks[0].id
+    worker_tasks = aws_security_group.worker_tasks[0].id
+  } : {}
   image_repository_urls = {
     ai-api    = data.terraform_remote_state.shared.outputs.ecr_repository_urls.ai_api
     embedding = data.terraform_remote_state.shared.outputs.ecr_repository_urls.embedding

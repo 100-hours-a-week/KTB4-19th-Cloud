@@ -1,7 +1,7 @@
 locals {
   # Keep CloudWatch and add Loki collection for both environments.
   ai_observability_targets = {
-    for target in setproduct(["staging", "prod"], ["ai-api", "embedding", "qdrant"]) : "${target[0]}-${target[1]}" => {
+    for target in setproduct(["staging", "prod"], var.enable_v2_application_observability ? ["ai-api", "embedding", "qdrant"] : ["qdrant"]) : "${target[0]}-${target[1]}" => {
       environment = target[0]
       service     = target[1]
     }
