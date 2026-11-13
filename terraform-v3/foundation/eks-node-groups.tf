@@ -81,7 +81,9 @@ resource "aws_launch_template" "eks_managed_node" {
     http_put_response_hop_limit = 1
   }
 
-  # Set the Pod limit and register with the Cilium taint on the first kubelet join.
+  # EKS supplies --register-with-taints from the node group taint blocks below.
+  # Do not override it here: that would discard the observability taint.
+  # Keep only the Pod limit override in the custom NodeConfig.
   user_data = base64encode(<<-MIME
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="NODEADM"
@@ -96,7 +98,6 @@ resource "aws_launch_template" "eks_managed_node" {
       kubelet:
         flags:
           - --max-pods=${var.eks_managed_node_max_pods}
-          - --register-with-taints=node.cilium.io/agent-not-ready=true:NoExecute
         config:
           maxPods: ${var.eks_managed_node_max_pods}
     --NODEADM--
