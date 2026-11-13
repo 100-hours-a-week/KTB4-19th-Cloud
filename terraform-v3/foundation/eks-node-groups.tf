@@ -7,14 +7,14 @@ variable "enable_eks_managed_node_groups" {
 variable "eks_managed_node_group_names" {
   description = "Select baseline node groups to create when managed node groups are enabled."
   type        = set(string)
-  default     = ["prod-general", "staging-general", "observability"]
+  default     = ["prod-general", "staging-general", "observability-2a"]
 
   validation {
     condition = alltrue([
       for name in var.eks_managed_node_group_names :
-      contains(["prod-general", "staging-general", "observability", "observability-2a"], name)
+      contains(["prod-general", "staging-general", "observability-2a"], name)
     ])
-    error_message = "Choose only prod-general, staging-general, observability or observability-2a."
+    error_message = "Choose only prod-general, staging-general or observability-2a."
   }
 }
 
@@ -42,13 +42,6 @@ locals {
       node_count    = 1
       subnet_ids    = values(local.eks_private_subnet_ids)
       labels        = { environment = "staging", role = "general" }
-    }
-    # Keep the existing group until monitoring has moved to observability-2a.
-    observability = {
-      instance_type = "t3a.medium"
-      node_count    = 1
-      subnet_ids    = values(local.eks_private_subnet_ids)
-      labels        = { role = "observability" }
     }
     observability-2a = {
       instance_type = "t3a.medium"
