@@ -49,9 +49,7 @@ spec:
         - matchName: api.runpod.io
         - matchPattern: "*.proxy.runpod.net"
         - matchName: openrouter.ai
-        {{- if eq $environment "prod" }}
         - matchName: api.tavily.com
-        {{- end }}
         {{- end }}
       toPorts:
         - ports:
