@@ -1,4 +1,6 @@
 # Add after v3.tfvars, managed-addons.tfvars, staging-nodes.tfvars,
 # staging-ingress.tfvars and prod-data-access.tfvars.
 # Preserve existing baseline groups and add three prod-general nodes.
-eks_managed_node_group_names = ["staging-general", "observability", "prod-general"]
+eks_managed_node_group_names = ["staging-general", "observability", "observability-2a", "prod-general"]
+
+# Migration: keep observability until EBS attachment and monitoring on observability-2a are verified.

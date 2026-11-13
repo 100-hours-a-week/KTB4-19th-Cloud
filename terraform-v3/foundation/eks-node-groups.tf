@@ -12,9 +12,9 @@ variable "eks_managed_node_group_names" {
   validation {
     condition = alltrue([
       for name in var.eks_managed_node_group_names :
-      contains(["prod-general", "staging-general", "observability"], name)
+      contains(["prod-general", "staging-general", "observability", "observability-2a"], name)
     ])
-    error_message = "Choose only prod-general, staging-general or observability."
+    error_message = "Choose only prod-general, staging-general, observability or observability-2a."
   }
 }
 
@@ -43,10 +43,17 @@ locals {
       subnet_ids    = values(local.eks_private_subnet_ids)
       labels        = { environment = "staging", role = "general" }
     }
+    # Keep the existing group until monitoring has moved to observability-2a.
     observability = {
       instance_type = "t3a.medium"
       node_count    = 1
       subnet_ids    = values(local.eks_private_subnet_ids)
+      labels        = { role = "observability" }
+    }
+    observability-2a = {
+      instance_type = "t3a.medium"
+      node_count    = 1
+      subnet_ids    = [local.eks_private_subnet_ids.ap_northeast_2a]
       labels        = { role = "observability" }
     }
   }
@@ -144,7 +151,7 @@ resource "aws_eks_node_group" "baseline" {
   }
 
   dynamic "taint" {
-    for_each = each.key == "observability" ? [true] : []
+    for_each = each.value.labels.role == "observability" ? [true] : []
 
     content {
       key    = "role"
