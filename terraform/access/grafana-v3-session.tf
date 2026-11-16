@@ -64,3 +64,49 @@ output "grafana_v3_port_forward_command" {
   description = "Use the existing grafana role profile; keep the terminal open and visit http://localhost:3000."
   value       = "aws --profile grafana --region ${local.region} ssm start-session --target ${data.aws_instance.v3_grafana_management.id} --document-name ${aws_ssm_document.grafana_v3_forward.name} --parameters '{\"localPortNumber\":[\"3000\"]}'"
 }
+
+
+resource "aws_ssm_document" "prod_ai_api_v3_forward" {
+  name            = "zipsai-v3-prod-ai-api-port-forward"
+  document_type   = "Session"
+  document_format = "JSON"
+  content = jsonencode({
+    schemaVersion = "1.0"
+    description   = "Forward only the V3 production AI API loopback listener on the management host"
+    sessionType   = "Port"
+    parameters = {
+      localPortNumber = {
+        type           = "String"
+        description    = "Local client port"
+        default        = "8000"
+        allowedPattern = "^([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+      }
+    }
+    properties = {
+      portNumber      = "18000"
+      type            = "LocalPortForwarding"
+      localPortNumber = "{{ localPortNumber }}"
+    }
+  })
+  tags = { Project = "zipsai", ManagedBy = "Terraform", Component = "team-access" }
+}
+
+resource "aws_iam_role_policy" "grafana_v3_prod_ai_api_session" {
+  name = "grafana-v3-prod-ai-api-session-only"
+  role = aws_iam_role.grafana_viewer.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "StartV3ProdAiApiSessionOnly"
+      Effect    = "Allow"
+      Action    = ["ssm:StartSession"]
+      Resource  = [data.aws_instance.v3_grafana_management.arn, aws_ssm_document.prod_ai_api_v3_forward.arn]
+      Condition = { BoolIfExists = { "ssm:SessionDocumentAccessCheck" = "true" } }
+    }]
+  })
+}
+
+output "prod_ai_api_v3_port_forward_command" {
+  description = "Use the existing grafana role profile; keep the terminal open and connect to localhost:8000."
+  value       = "aws --profile grafana --region ${local.region} ssm start-session --target ${data.aws_instance.v3_grafana_management.id} --document-name ${aws_ssm_document.prod_ai_api_v3_forward.name} --parameters '{\"localPortNumber\":[\"8000\"]}'"
+}

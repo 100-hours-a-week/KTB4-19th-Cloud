@@ -1,0 +1,20 @@
+[Unit]
+Description=V3 production AI API loopback forward for SSM load testing
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=ssm-user
+Environment=HOME=/home/ssm-user
+Environment=KUBECONFIG=/home/ssm-user/.kube/config
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/kubectl --context=zipsai-v3 -n prod port-forward --address=127.0.0.1 service/ai-api 18000:8000
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
