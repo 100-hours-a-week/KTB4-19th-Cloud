@@ -49,8 +49,8 @@ kube-prometheus-stack:
     nodeSelector: {role: observability}
     tolerations: [{key: role, operator: Equal, value: observability, effect: NoSchedule}]
     resources:
-      requests: {cpu: 100m, memory: 256Mi}
-      limits: {cpu: 500m, memory: 512Mi}
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: 500m, memory: 2Gi}
     admin:
       existingSecret: grafana-admin
       userKey: admin-user
