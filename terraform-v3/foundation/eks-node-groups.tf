@@ -7,14 +7,14 @@ variable "enable_eks_managed_node_groups" {
 variable "eks_managed_node_group_names" {
   description = "Select baseline node groups to create when managed node groups are enabled."
   type        = set(string)
-  default     = ["prod-general", "staging-general", "observability-2a"]
+  default     = ["prod-general", "staging-general", "observability-2a-large"]
 
   validation {
     condition = alltrue([
       for name in var.eks_managed_node_group_names :
-      contains(["prod-general", "staging-general", "observability-2a"], name)
+      contains(["prod-general", "staging-general", "observability-2a-large"], name)
     ])
-    error_message = "Choose only prod-general, staging-general or observability-2a."
+    error_message = "Choose only prod-general, staging-general or observability-2a-large."
   }
 }
 
@@ -43,8 +43,10 @@ locals {
       subnet_ids    = values(local.eks_private_subnet_ids)
       labels        = { environment = "staging", role = "general" }
     }
-    observability-2a = {
-      instance_type = "t3a.medium"
+    # Create the larger group in the same AZ before retiring the old group.
+    # Keep existing monitoring PVCs; their EBS volumes are pinned to 2a.
+    observability-2a-large = {
+      instance_type = "t3a.large"
       node_count    = 1
       subnet_ids    = [local.eks_private_subnet_ids.ap_northeast_2a]
       labels        = { role = "observability" }
