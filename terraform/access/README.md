@@ -152,3 +152,28 @@ aws --profile grafana --region ap-northeast-2 ssm start-session \
 로컬 3000이 사용 중이면 `localPortNumber`만 13001 등으로 바꾸고 같은 포트로 접속한다.
 관리용 EC2가 교체되면 `terraform output -raw grafana_v3_port_forward_command`로 새 명령을 확인한다.
 이 Role에는 관리용 EC2 셸·SendCommand·범용 포워딩 권한을 부여하지 않는다.
+
+## V3 Prod AI API 부하 테스트 접속
+
+V3 Prod AI API에 대한 직접 부하 테스트는 매니지먼트 EC2의 전용 `kubectl port-forward`와
+SSM Session 문서를 사용한다. 팀원은 기존 `grafana` Role 프로필을 사용하며, 이 Role에는
+매니지먼트 EC2와 AI API 전용 문서에 대한 `StartSession`만 추가한다. 기존 Grafana 연결은 유지한다.
+
+관리자 작업자는 변경 적용 후 관리용 EC2에서 한 번 실행한다.
+
+```bash
+sudo bash kubernetes/bootstrap/ai-api/install-prod-forward.sh
+```
+
+팀원은 아래 터널을 열어 둔 상태에서 `http://localhost:8000`으로 요청한다.
+
+```bash
+aws --profile grafana --region ap-northeast-2 ssm start-session \
+  --target i-0cbde9387404cd61d \
+  --document-name zipsai-v3-prod-ai-api-port-forward \
+  --parameters '{"localPortNumber":["8000"]}'
+```
+
+`kubectl port-forward service/ai-api`는 선택된 AI API Pod 하나에 연결한다. 따라서 이 경로는
+Pod 한 개의 동시 처리 능력을 측정하며, 두 Replica 전체의 분산 처리량 측정은 아니다.
+부하 테스트가 끝나면 터미널에서 Ctrl+C로 SSM 세션을 종료한다.
