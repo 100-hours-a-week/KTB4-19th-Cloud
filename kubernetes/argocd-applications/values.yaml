@@ -1,3 +1,8 @@
+# Pause child Application auto-sync without deleting Applications or workloads.
+# v3-root stays active so Git can restore the original sync policies.
+maintenance:
+  suspendAutoSync: false
+
 cilium:
   enabled: false
   apiHost: ""

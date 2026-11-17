@@ -44,7 +44,7 @@ spec:
   syncPolicy:
     syncOptions:
       - RespectIgnoreDifferences=true
-  {{- if eq $environment "staging" }}
+  {{- if and (eq $environment "staging") (not $.Values.maintenance.suspendAutoSync) }}
     automated:
       prune: true
       selfHeal: true

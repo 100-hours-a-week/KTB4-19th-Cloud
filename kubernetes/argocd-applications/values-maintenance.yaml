@@ -1,0 +1,4 @@
+# Explicitly opt in by appending this file to v3-root helm.valueFiles.
+# This only pauses automatic sync; it does not stop workloads or compute.
+maintenance:
+  suspendAutoSync: true
