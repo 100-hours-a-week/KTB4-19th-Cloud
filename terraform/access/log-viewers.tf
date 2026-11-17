@@ -3,7 +3,7 @@
 resource "aws_iam_group" "log_viewers" {
   name = "zipsai-prod-log-viewers"
   path = "/"
-  lifecycle { prevent_destroy = true }
+  lifecycle { prevent_destroy = false }
 }
 
 locals {
@@ -52,7 +52,7 @@ resource "aws_iam_policy" "production_logs" {
       }
     ]
   })
-  lifecycle { prevent_destroy = true }
+  lifecycle { prevent_destroy = false }
 }
 
 resource "aws_iam_group_policy_attachment" "production_logs" {

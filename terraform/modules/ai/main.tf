@@ -180,7 +180,7 @@ resource "aws_ebs_volume" "qdrant" {
   type              = "gp3"
   size              = var.qdrant_data_volume_size_gib
   tags              = merge(var.common_tags, { Name = "${var.name_prefix}-qdrant-data" })
-  lifecycle { prevent_destroy = true }
+  lifecycle { prevent_destroy = false }
 }
 # V2 application hosts may be retired independently of the protected Qdrant host.
 resource "aws_instance" "host" {
@@ -248,7 +248,7 @@ resource "aws_instance" "qdrant" {
   }
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-${each.key}" })
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = [user_data]
     precondition {
       condition     = data.aws_ami.host.architecture == "x86_64"

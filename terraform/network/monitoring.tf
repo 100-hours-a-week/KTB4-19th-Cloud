@@ -10,7 +10,7 @@ resource "aws_route53_zone" "private" {
   })
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
