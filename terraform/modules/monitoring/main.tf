@@ -63,7 +63,7 @@ resource "aws_ebs_volume" "data" {
   })
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 

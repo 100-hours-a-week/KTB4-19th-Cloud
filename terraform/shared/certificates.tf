@@ -41,7 +41,7 @@ resource "aws_route53_record" "certificate_validation" {
   records = [local.certificate_validation.resource_record_value]
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 

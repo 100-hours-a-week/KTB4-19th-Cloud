@@ -14,7 +14,7 @@ resource "aws_iam_instance_profile" "production" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -25,7 +25,7 @@ resource "aws_iam_instance_profile" "rehearsal" {
   tags = {}
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -53,7 +53,7 @@ resource "aws_iam_role" "production" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -77,7 +77,7 @@ resource "aws_iam_role" "rehearsal" {
   tags                  = {}
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -110,7 +110,7 @@ resource "aws_iam_role_policy" "rehearsal_observability" {
   role = "zipsai-load-test-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -133,7 +133,7 @@ resource "aws_iam_role_policy" "rehearsal_s3" {
   role = "zipsai-load-test-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -142,7 +142,7 @@ resource "aws_iam_role_policy_attachment" "production_cloudwatch" {
   role       = "zipsai-prod-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -151,7 +151,7 @@ resource "aws_iam_role_policy_attachment" "production_logs" {
   role       = "zipsai-prod-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -160,7 +160,7 @@ resource "aws_iam_role_policy_attachment" "production_runtime" {
   role       = "zipsai-prod-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -169,7 +169,7 @@ resource "aws_iam_role_policy_attachment" "production_ssm" {
   role       = "zipsai-prod-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -178,7 +178,7 @@ resource "aws_iam_role_policy_attachment" "rehearsal_cloudwatch" {
   role       = "zipsai-load-test-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -187,7 +187,7 @@ resource "aws_iam_role_policy_attachment" "rehearsal_ecr" {
   role       = "zipsai-load-test-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -196,7 +196,7 @@ resource "aws_iam_role_policy_attachment" "rehearsal_ssm" {
   role       = "zipsai-load-test-ec2-role"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -216,7 +216,7 @@ resource "aws_security_group" "production" {
   vpc_id = "vpc-0e01c25a55f10f584"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -229,7 +229,7 @@ resource "aws_security_group" "rehearsal" {
   vpc_id                 = "vpc-0e01c25a55f10f584"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -251,7 +251,7 @@ resource "aws_vpc_security_group_egress_rule" "production" {
   to_port = null
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -269,7 +269,7 @@ resource "aws_vpc_security_group_egress_rule" "rehearsal" {
   to_port                      = null
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -291,7 +291,7 @@ resource "aws_vpc_security_group_ingress_rule" "production_http" {
   to_port = 80
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -313,7 +313,7 @@ resource "aws_vpc_security_group_ingress_rule" "production_https" {
   to_port = 443
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -331,7 +331,7 @@ resource "aws_vpc_security_group_ingress_rule" "production_https_self" {
   to_port                      = 443
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -349,6 +349,6 @@ resource "aws_vpc_security_group_ingress_rule" "rehearsal_http" {
   to_port                      = 80
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }

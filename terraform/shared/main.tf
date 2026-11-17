@@ -31,7 +31,7 @@ resource "aws_ecr_repository" "service" {
   })
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -44,7 +44,7 @@ resource "aws_route53_zone" "public" {
   })
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -112,7 +112,7 @@ resource "aws_s3_bucket" "uploads" {
   tags = local.uploads_bucket_tags
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
