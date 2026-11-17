@@ -27,8 +27,10 @@ spec:
     server: https://kubernetes.default.svc
     namespace: karpenter
   syncPolicy:
+    {{- if not .Values.maintenance.suspendAutoSync }}
     automated:
       selfHeal: true
+    {{- end }}
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
